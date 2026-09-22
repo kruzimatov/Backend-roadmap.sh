@@ -1,0 +1,1715 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<title>System Design + PHP/Laravel — The Book</title>
+<style>
+@import url('https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700;800&family=JetBrains+Mono:wght@400;500;600&display=swap');
+*{margin:0;padding:0;box-sizing:border-box}
+:root{
+  --bg:#0a0d13; --panel:#0e121a; --card:#141924; --card2:#1a2130;
+  --border:#20293a; --border2:#2a3550;
+  --text:#dfe6f0; --text2:#8b97ab; --text3:#5b6779;
+  --accent:#5b8def; --accent-dim:rgba(91,141,239,.12); --accent-bd:rgba(91,141,239,.35);
+  --green:#4ade80; --green-dim:rgba(74,222,128,.12);
+  --amber:#fbbf24; --amber-dim:rgba(251,191,36,.12);
+  --red:#f87171; --red-dim:rgba(248,113,113,.10);
+  --mono:'JetBrains Mono',monospace;
+}
+[data-theme="light"]{
+  --bg:#f6f8fc; --panel:#fff; --card:#f1f4fa; --card2:#e9edf5;
+  --border:#dde3ee; --border2:#c8d2e2;
+  --text:#141b28; --text2:#4c586c; --text3:#8a95a7;
+  --accent:#3b6fd4; --accent-dim:rgba(59,111,212,.08); --accent-bd:rgba(59,111,212,.3);
+  --green:#16a34a; --green-dim:rgba(22,163,74,.1);
+  --amber:#d97706; --amber-dim:rgba(217,119,6,.1);
+  --red:#dc2626; --red-dim:rgba(220,38,38,.08);
+}
+html{scroll-behavior:smooth}
+body{font-family:'Inter',system-ui,sans-serif;background:var(--bg);color:var(--text);line-height:1.7;font-size:16px;-webkit-font-smoothing:antialiased}
+.app{display:flex;min-height:100vh}
+.sidebar{width:290px;flex-shrink:0;background:var(--panel);border-right:1px solid var(--border);height:100vh;position:sticky;top:0;overflow-y:auto;display:flex;flex-direction:column}
+.sb-head{padding:20px 20px 14px;border-bottom:1px solid var(--border)}
+.sb-brand{font-size:.72rem;font-weight:700;letter-spacing:.18em;color:var(--accent);text-transform:uppercase;font-family:var(--mono)}
+.sb-title{font-size:1.05rem;font-weight:800;margin-top:4px;letter-spacing:-.02em}
+.sb-sub{font-size:.72rem;color:var(--text3);margin-top:2px}
+.sb-tools{display:flex;gap:6px;padding:12px 16px;border-bottom:1px solid var(--border);flex-wrap:wrap}
+.sb-tools button{background:var(--card);border:1px solid var(--border);color:var(--text2);font-size:.68rem;padding:5px 9px;border-radius:7px;cursor:pointer;font-family:inherit;transition:.15s}
+.sb-tools button:hover{border-color:var(--accent-bd);color:var(--text)}
+.sb-search{padding:10px 16px;border-bottom:1px solid var(--border)}
+.sb-search input{width:100%;background:var(--card);border:1px solid var(--border);border-radius:8px;padding:7px 10px;color:var(--text);font-size:.78rem;font-family:inherit;outline:none}
+.sb-search input:focus{border-color:var(--accent-bd)}
+.sb-nav{flex:1;overflow-y:auto;padding:8px 0 30px}
+.mod{margin-bottom:2px}
+.mod-head{display:flex;align-items:center;gap:9px;padding:9px 16px;cursor:pointer;transition:.15s}
+.mod-head:hover{background:var(--card)}
+.mod-num{font-family:var(--mono);font-size:.68rem;color:var(--accent);font-weight:600;flex-shrink:0}
+.mod-name{font-size:.78rem;font-weight:700;letter-spacing:.02em;text-transform:uppercase;color:var(--text);flex:1}
+.mod-count{font-family:var(--mono);font-size:.64rem;color:var(--text3)}
+.mod-arrow{font-size:.6rem;color:var(--text3);transition:transform .2s}
+.mod.open .mod-arrow{transform:rotate(90deg)}
+.mod-lessons{display:none;padding:2px 0 8px}
+.mod.open .mod-lessons{display:block}
+.les{display:flex;align-items:center;gap:8px;padding:6px 16px 6px 40px;cursor:pointer;font-size:.78rem;color:var(--text2);border-left:2px solid transparent;transition:.12s}
+.les:hover{color:var(--text);background:var(--card)}
+.les.active{color:var(--accent);border-left-color:var(--accent);background:var(--accent-dim)}
+.les-dot{width:6px;height:6px;border-radius:50%;border:1.5px solid var(--text3);flex-shrink:0}
+.les.done .les-dot{background:var(--green);border-color:var(--green)}
+.les-num{font-family:var(--mono);font-size:.66rem;color:var(--text3);flex-shrink:0}
+.les.active .les-num{color:var(--accent)}
+.les-name{flex:1;white-space:nowrap;overflow:hidden;text-overflow:ellipsis}
+.main{flex:1;min-width:0;display:flex;flex-direction:column}
+.progress-top{height:2px;background:var(--border);position:sticky;top:0;z-index:20}
+.progress-top>i{display:block;height:100%;width:0;background:var(--accent);transition:.3s}
+.reader{max-width:760px;margin:0 auto;padding:46px 40px 120px;width:100%}
+.crumb{font-family:var(--mono);font-size:.7rem;letter-spacing:.08em;color:var(--text3);text-transform:uppercase;margin-bottom:26px;display:flex;gap:8px;flex-wrap:wrap;align-items:center}
+.crumb .sep{color:var(--border2)}
+.crumb .cur{color:var(--accent)}
+.lesson{display:none}
+.lesson.show{display:block;animation:fade .25s ease}
+@keyframes fade{from{opacity:0;transform:translateY(6px)}to{opacity:1;transform:none}}
+.lesson h1{font-size:2.1rem;font-weight:800;letter-spacing:-.03em;margin-bottom:26px;line-height:1.15}
+.lesson h2{font-size:1.15rem;font-weight:700;margin:38px 0 12px;color:var(--text);letter-spacing:-.01em}
+.lesson h2::before{content:"";display:block;width:26px;height:3px;background:var(--accent);border-radius:2px;margin-bottom:14px}
+.lesson p{margin:0 0 14px;color:var(--text2)}
+.lesson p.lead{color:var(--text);font-size:1.02rem}
+.lesson strong{color:var(--text);font-weight:600}
+.lesson ul{margin:8px 0 16px;padding-left:20px}
+.lesson li{margin-bottom:6px;color:var(--text2)}
+.lesson a{color:var(--accent);text-decoration:none;border-bottom:1px solid transparent}
+.lesson a:hover{border-color:var(--accent)}
+code{font-family:var(--mono);font-size:.86em;background:var(--card);border:1px solid var(--border);padding:1px 6px;border-radius:5px;color:var(--accent)}
+pre{position:relative;background:var(--card);border:1px solid var(--border);border-radius:12px;padding:18px 18px;margin:16px 0;overflow-x:auto;font-family:var(--mono);font-size:.82rem;line-height:1.65;color:var(--text)}
+pre .lbl{position:absolute;top:0;left:16px;transform:translateY(-50%);background:var(--bg);font-family:var(--mono);font-size:.6rem;letter-spacing:.14em;color:var(--text3);padding:2px 8px;text-transform:uppercase}
+pre code{background:none;border:none;padding:0;color:inherit;font-size:inherit}
+pre .cm{color:var(--text3);font-style:italic}
+pre .kw{color:var(--accent)}
+pre .st{color:var(--green)}
+.copy{position:absolute;top:8px;right:8px;background:var(--card2);border:1px solid var(--border);color:var(--text3);font-size:.64rem;padding:3px 8px;border-radius:6px;cursor:pointer;font-family:inherit;opacity:0;transition:.15s}
+pre:hover .copy{opacity:1}
+.copy.ok{color:var(--green);border-color:var(--green)}
+.box{border-radius:11px;padding:14px 16px;margin:18px 0;border:1px solid var(--border);background:var(--card)}
+.box .bt{font-family:var(--mono);font-size:.64rem;font-weight:700;letter-spacing:.1em;text-transform:uppercase;margin-bottom:6px;display:flex;gap:7px;align-items:center}
+.box p:last-child{margin-bottom:0}
+.box.problem{background:var(--red-dim);border-color:rgba(248,113,113,.25)}
+.box.problem .bt{color:var(--red)}
+.box.gotcha{background:var(--amber-dim);border-color:rgba(251,191,36,.25)}
+.box.gotcha .bt{color:var(--amber)}
+.box.tip{background:var(--green-dim);border-color:rgba(74,222,128,.22)}
+.box.tip .bt{color:var(--green)}
+.box.key{background:var(--accent-dim);border-color:var(--accent-bd)}
+.box.key .bt{color:var(--accent)}
+.plain{font-family:var(--mono);font-size:.82rem;background:var(--card);border:1px solid var(--border);border-radius:10px;padding:14px 16px;margin:14px 0;color:var(--text2);white-space:pre-wrap;line-height:1.7}
+.plain b{color:var(--text)}
+.flow{background:var(--card);border:1px solid var(--border);border-radius:12px;padding:22px 18px;margin:18px 0;overflow-x:auto}
+.flow-row{display:flex;align-items:center;justify-content:center;gap:10px;flex-wrap:wrap}
+.node{font-family:var(--mono);font-size:.74rem;background:var(--card2);border:1px solid var(--border2);border-radius:8px;padding:9px 14px;color:var(--text);white-space:nowrap}
+.node.hl{border-color:var(--accent-bd);color:var(--accent);background:var(--accent-dim)}
+.node.ok{border-color:rgba(74,222,128,.4)}
+.node.down{border-color:rgba(248,113,113,.4);color:var(--text3);text-decoration:line-through}
+.node .st{margin-left:8px;font-size:.66rem}
+.node .st.ok{color:var(--green)}
+.node .st.down{color:var(--amber)}
+.arrow{color:var(--accent);font-family:var(--mono);flex-shrink:0}
+.flow-col{display:flex;flex-direction:column;gap:8px}
+.flow-cap{text-align:center;font-family:var(--mono);font-size:.66rem;color:var(--text3);margin-top:14px}
+svg.dia{display:block;width:100%;height:auto;margin:18px 0;background:var(--card);border:1px solid var(--border);border-radius:12px;padding:6px}
+svg.dia text{font-family:var(--mono);font-size:11px;fill:var(--text2)}
+svg.dia .nb{fill:var(--card2);stroke:var(--border2)}
+svg.dia .nb.hl{stroke:var(--accent);fill:var(--accent-dim)}
+svg.dia .nt{fill:var(--text)}
+svg.dia .ln{stroke:var(--accent);fill:none;stroke-width:1.5}
+svg.dia .ok{fill:var(--green)}
+svg.dia .dn{fill:var(--amber)}
+.pager{display:flex;justify-content:space-between;gap:12px;margin-top:50px;border-top:1px solid var(--border);padding-top:22px}
+.pager button{flex:1;background:var(--card);border:1px solid var(--border);border-radius:10px;padding:12px 16px;cursor:pointer;text-align:left;transition:.15s;color:var(--text)}
+.pager button:hover:not(:disabled){border-color:var(--accent-bd)}
+.pager button:disabled{opacity:.35;cursor:default}
+.pager .dir{font-family:var(--mono);font-size:.62rem;letter-spacing:.1em;text-transform:uppercase;color:var(--text3)}
+.pager .t{font-size:.84rem;font-weight:600;margin-top:2px;display:block;white-space:nowrap;overflow:hidden;text-overflow:ellipsis}
+.pager .nx{text-align:right}
+.mark-done{display:inline-flex;align-items:center;gap:8px;margin-top:26px;background:var(--card);border:1px solid var(--border);border-radius:9px;padding:9px 15px;cursor:pointer;font-size:.8rem;color:var(--text2);transition:.15s}
+.mark-done:hover{border-color:var(--green)}
+.mark-done.on{background:var(--green-dim);border-color:var(--green);color:var(--green)}
+.menu-btn{display:none;position:fixed;top:12px;left:12px;z-index:60;background:var(--panel);border:1px solid var(--border);color:var(--text);width:40px;height:40px;border-radius:10px;font-size:1.1rem;cursor:pointer}
+.overlay{display:none;position:fixed;inset:0;background:rgba(0,0,0,.5);z-index:40}
+@media(max-width:900px){
+  .sidebar{position:fixed;left:0;top:0;z-index:50;transform:translateX(-100%);transition:transform .25s}
+  .sidebar.open{transform:none}
+  .overlay.show{display:block}
+  .menu-btn{display:block}
+  .reader{padding:64px 20px 100px}
+  .lesson h1{font-size:1.7rem}
+}
+</style>
+</head>
+<body>
+<button class="menu-btn" id="menuBtn">☰</button>
+<div class="overlay" id="overlay"></div>
+<div class="app">
+  <aside class="sidebar" id="sidebar">
+    <div class="sb-head">
+      <div class="sb-brand">THE BOOK</div>
+      <div class="sb-title">System Design + PHP/Laravel</div>
+      <div class="sb-sub">How systems scale, break, and recover</div>
+    </div>
+    <div class="sb-tools">
+      <button id="themeBtn">☀ Light</button>
+      <button id="expandBtn">⊕ Expand</button>
+      <button id="collapseBtn">⊖ Collapse</button>
+    </div>
+    <div class="sb-search"><input id="search" placeholder="Search lessons…"></div>
+    <nav class="sb-nav" id="nav"></nav>
+  </aside>
+
+  <main class="main">
+    <div class="progress-top"><i id="progressBar"></i></div>
+    <div class="reader">
+      <div class="crumb" id="crumb"></div>
+      <div id="lessons">
+
+<!-- ===================== MODULE 1 · FOUNDATIONS ===================== -->
+
+<section class="lesson" data-m="1" data-n="1.1" data-mod="Foundations · SCALING" data-title="Scalability">
+<h1>Scalability</h1>
+<div class="box problem"><div class="bt">⚡ Real problem</div>
+<p>Your Laravel API is fast in staging. It ships to production.</p>
+<p>Traffic grows.</p></div>
+<div class="plain">100 req/sec   → fine
+1 000 req/sec  → slowdown felt
+10 000 req/sec → p95 explodes</div>
+<p>CPU at 90%. PostgreSQL connections full. Redis sometimes slow.</p>
+<p>The user says one thing: <strong>"The site is slow."</strong></p>
+<p class="lead">Scalability starts here. It is not "add more servers." It is being able to see <strong>which part breaks first</strong> as load grows.</p>
+
+<h2>Mental model — every request is a journey</h2>
+<div class="flow"><div class="flow-row">
+<span class="node">User</span><span class="arrow">→</span>
+<span class="node">Nginx</span><span class="arrow">→</span>
+<span class="node hl">PHP-FPM</span><span class="arrow">→</span>
+<span class="node">Redis</span><span class="arrow">→</span>
+<span class="node">Postgres</span><span class="arrow">→</span>
+<span class="node">SMS API</span></div>
+<div class="flow-cap">Each layer has a limit. The smallest limit becomes the whole system's limit.</div></div>
+<p>Nginx connection limit. FPM worker count. DB connection pool. Redis memory. External API timeout.</p>
+<p>Scalability = find the narrowest point on the request path.</p>
+
+<h2>Throughput vs latency</h2>
+<div class="plain"><b>Throughput</b>  work per second   → req/sec, jobs/sec
+<b>Latency</b>     time for one item → 120ms, 800ms, 4s</div>
+<p>Not the same. A system can accept 10,000 req/sec and still be bad if every user waits 5 seconds.</p>
+
+<h2>Why p95 matters</h2>
+<p>Average lies. It hides the slow tail.</p>
+<div class="plain"><b>p50</b>  half of users faster than this
+<b>p95</b>  1 in 20 users is slower than this
+<b>p99</b>  1 in 100 — thousands of people at scale</div>
+<div class="box key"><div class="bt">◆ Rule</div><p>When p95 rises, production is hurting — even if the average looks fine. Watch percentiles, not averages.</p></div>
+
+<h2>Vertical vs horizontal</h2>
+<p><strong>Vertical (scale up)</strong> — a bigger machine (4 CPU → 32 CPU, 8GB → 64GB). Simple, no architecture change, and often enough. But it has a hard ceiling (the biggest instance money can buy), the price is non-linear, and it stays a <em>single point of failure</em> — one machine, one fate.</p>
+<p><strong>Horizontal (scale out)</strong> — more machines behind a load balancer. No ceiling, and redundancy for free (one dies, others serve). This is the production path — but it demands one thing: <strong>stateless app servers</strong> (next lesson), because a request may land on any machine.</p>
+<div class="plain"><b>Vertical</b>    simple · fast · has a ceiling · single failure point
+<b>Horizontal</b>  unlimited · redundant · needs stateless design · adds ops complexity</div>
+<div class="box gotcha"><div class="bt">▲ The hidden bottleneck: DB connections</div><p>Scale app servers to 10 and each opens 20 DB connections — that's 200. If Postgres <code>max_connections = 100</code>, your own app DDoSes the database. Horizontal scaling shifts the bottleneck to shared resources (DB, cache). Put a connection pooler (PgBouncer) between app and DB.</p></div>
+<pre><span class="lbl">text · the pooler fixes the fan-in</span><code>10 app servers × 20 conns = 200  →  PgBouncer  →  Postgres (100 max)</code></pre>
+<div class="box tip"><div class="bt">◆ Don't over-engineer</div><p>Small traffic? Vertical scaling is fine — don't be ashamed of it. Making everything distributed on day one is textbook disease: you pay all the complexity, none of the benefit. Scale up first; scale out when a single box genuinely can't keep up.</p></div>
+</section>
+
+<section class="lesson" data-m="1" data-n="1.2" data-mod="Foundations · SCALING" data-title="Load Balancing">
+<h1>Load Balancing</h1>
+<div class="box problem"><div class="bt">⚡ Real problem</div>
+<p>You scaled your Laravel API from 1 server to 3.</p>
+<p>Which server does a client hit? The client shouldn't know the server list. If one dies, the client shouldn't feel it.</p></div>
+<p class="lead">Requests must enter one place and spread to healthy instances. That layer is the load balancer.</p>
+<svg class="dia" viewBox="0 0 460 200" role="img" aria-label="Load balancer routing to app servers">
+  <rect class="nb" x="20" y="82" width="80" height="36" rx="7"/><text class="nt" x="60" y="104" text-anchor="middle">Client</text>
+  <line class="ln" x1="100" y1="100" x2="170" y2="100"/>
+  <rect class="nb hl" x="170" y="78" width="90" height="44" rx="7"/><text class="nt" x="215" y="96" text-anchor="middle">Load</text><text class="nt" x="215" y="110" text-anchor="middle">Balancer</text>
+  <line class="ln" x1="260" y1="92" x2="340" y2="40"/>
+  <line class="ln" x1="260" y1="100" x2="340" y2="100"/>
+  <line class="ln" x1="260" y1="108" x2="340" y2="160" stroke-dasharray="4 4" opacity="0.5"/>
+  <rect class="nb" x="340" y="22" width="80" height="34" rx="7"/><text class="nt" x="380" y="43" text-anchor="middle">App 1</text><text class="ok" x="430" y="43">●</text>
+  <rect class="nb" x="340" y="83" width="80" height="34" rx="7"/><text class="nt" x="380" y="104" text-anchor="middle">App 2</text><text class="ok" x="430" y="104">●</text>
+  <rect class="nb" x="340" y="144" width="80" height="34" rx="7"/><text x="380" y="165" text-anchor="middle" fill="#5b6779" text-decoration="line-through">App 3</text><text class="dn" x="430" y="165">✕</text>
+</svg>
+<p>Load balancer skips the dead server and sends the request to a live one.</p>
+
+<h2>Algorithms</h2>
+<div class="plain"><b>Round robin</b>       rotate evenly across servers
+<b>Least connections</b>  send to the least-busy server
+<b>IP hash</b>           same client → same server (sticky)</div>
+
+<h2>L4 vs L7 load balancing</h2>
+<div class="plain"><b>L4 (transport)</b>  routes by IP + port only — fast, protocol-blind
+<b>L7 (application)</b>  reads the HTTP request — can route by path, header, cookie</div>
+<p>An L7 balancer (Nginx, HAProxy, ALB) can send <code>/api</code> to one pool and <code>/admin</code> to another, do TLS termination, and inspect requests. An L4 balancer just forwards packets — lower latency, but no HTTP awareness. Most web apps want L7.</p>
+
+<h2>Health checks</h2>
+<p>The LB pings each server on an interval (<code>GET /health</code>). No healthy reply within the timeout → the server is pulled from rotation. It recovers → automatically added back. Your <code>/health</code> endpoint should check real dependencies (DB, Redis reachable) but stay cheap — it runs constantly.</p>
+<div class="box gotcha"><div class="bt">▲ Sticky sessions are a smell</div><p>IP-hash "stickiness" pins a user to one server so their in-memory session survives — but it breaks the moment that server dies (all its users are logged out), and it unbalances load (one heavy user, one hot server). The real fix is <strong>stateless servers</strong> (next lesson): move session to Redis, and any server can serve any request. Reach for stickiness only when you truly can't externalize state.</p></div>
+<div class="box key"><div class="bt">◆ Nginx = reverse proxy that load-balances</div><pre><span class="lbl">nginx</span><code>upstream app {
+    server 127.0.0.1:9000;   <span class="cm"># App 1</span>
+    server 127.0.0.1:9001;   <span class="cm"># App 2</span>
+    server 127.0.0.1:9002;   <span class="cm"># App 3</span>
+}
+server { location / { proxy_pass http://app; } }</code></pre></div>
+</section>
+
+<section class="lesson" data-m="1" data-n="1.3" data-mod="Foundations · SCALING" data-title="Stateless Design">
+<h1>Stateless Design</h1>
+<div class="box problem"><div class="bt">⚡ Real problem</div>
+<p>User logs in — session saved in App 1's memory.</p>
+<p>Their next request hits App 2. App 2 never heard of them. Logged out.</p></div>
+<p class="lead">Horizontal scaling only works if any server can serve any request. That means no secret state in local memory.</p>
+<div class="plain"><b>Bad</b>
+login session → App 1 RAM
+cart          → App 1 memory
+upload progress → App 1 local disk
+
+<b>Good</b>
+session  → Redis or signed cookie
+cart     → database or Redis
+file     → object storage (S3)
+progress → shared store</div>
+<div class="flow"><div class="flow-row">
+<span class="node">App 1</span><span class="node">App 2</span><span class="node">App 3</span>
+<span class="arrow">→</span><span class="node hl">Redis</span><span class="node">Postgres</span></div>
+<div class="flow-cap">Stateless apps point at shared state layers. Any app can serve any user.</div></div>
+<h2>Two ways to carry identity</h2>
+<div class="plain"><b>Server-side session (in Redis)</b>
+  cookie holds only a session ID → server looks up state in Redis
+  ✅ revoke instantly (delete the key)   ✅ small cookie
+  ❌ every request does a Redis lookup
+
+<b>Stateless token (JWT)</b>
+  the token itself carries signed identity → server verifies signature, no lookup
+  ✅ zero shared state, scales trivially   ❌ can't revoke before expiry
+  ❌ bigger, and stale until it expires</div>
+<p>Both keep the app server stateless — the difference is <em>where</em> the state lives (shared Redis vs the token itself). Sessions favor control (instant logout); JWTs favor scale (no lookup). Many systems use short-lived JWTs + a refresh token to get both.</p>
+<div class="box key"><div class="bt">◆ Laravel</div><p><code>SESSION_DRIVER=redis</code>, <code>CACHE_STORE=redis</code>, filesystem disk to S3. Now app servers hold nothing — kill one mid-traffic and no user notices. For token auth, Sanctum (SPA/mobile) or Passport (OAuth) issue and verify tokens.</p></div>
+</section>
+
+<section class="lesson" data-m="1" data-n="1.4" data-mod="Foundations · SCALING" data-title="Caching & Queues — When">
+<h1>Caching &amp; Queues — When Each Enters</h1>
+<h2>When cache enters</h2>
+<p>Cache is not a bandage for a slow DB. Cache is for data read often and changed rarely.</p>
+<div class="plain"><b>Good candidate</b>          <b>Bad candidate</b>
+GET /popular-news         GET /balance
+GET /products/10          GET /payment-status
+GET /settings/public      (stale = expensive here)</div>
+
+<h2>When a queue enters</h2>
+<p>Work that doesn't have to finish inside the request goes to the background.</p>
+<div class="flow"><div class="flow-row">
+<span class="node hl">API</span><span class="arrow">→</span><span class="node">return fast</span>
+<span class="arrow">·</span><span class="node">Queue</span><span class="arrow">→</span><span class="node">Worker</span><span class="arrow">→</span><span class="node">email / report / resize</span></div>
+<div class="flow-cap">Queue cuts user latency. It does not reduce total work — workers still do it.</div></div>
+
+<h2>The scaling path — in stages</h2>
+<div class="plain"><b>100 req/sec</b>    one good server: indexes, slow-query log, timeouts, monitoring
+<b>1k req/sec</b>     more app instances + LB; sessions shared; DB pool matters
+<b>10k req/sec</b>    cache required; read replica; background jobs; hot endpoints split
+<b>100k req/sec</b>   CDN, sharding, event streaming, regional deploy, precompute</div>
+<div class="box gotcha"><div class="bt">▲ The cache stampede</div><p>A hot cached key expires. In the same instant, 5,000 in-flight requests all miss and all run the expensive query together — a self-inflicted spike that can take the DB down. Mitigate with a short lock (first miss rebuilds, others wait), staggered TTLs, or refreshing the value slightly before it expires.</p></div>
+<div class="box tip"><div class="bt">◆ Not all at once</div><p>Add each layer when a real bottleneck demands it — measured, not guessed. Premature caching hides bugs; premature sharding buys pain. Let the metrics (p95, DB CPU, queue depth) tell you what to add next.</p></div>
+</section>
+
+<section class="lesson" data-m="1" data-n="1.5" data-mod="Foundations · CAP" data-title="CAP Theorem">
+<h1>CAP Theorem</h1>
+<p class="lead">In a distributed system, when the network splits, you get to keep two of three: Consistency, Availability, Partition-tolerance.</p>
+<div class="plain"><b>C</b>onsistency          every read sees the latest write
+<b>A</b>vailability         every request gets a (non-error) response
+<b>P</b>artition tolerance  system survives network splits</div>
+<div class="box key"><div class="bt">◆ The real choice is C vs A</div><p>Networks <em>will</em> partition — P is not optional. So the actual decision under a split: return maybe-stale data (choose <strong>A</strong>) or refuse to answer until consistent (choose <strong>C</strong>).</p></div>
+<div class="plain"><b>CP</b>  banks, inventory     → refuse rather than serve wrong data
+<b>AP</b>  feeds, likes, DNS    → serve slightly stale, never go down</div>
+<div class="box tip"><div class="bt">◆ Analogy</div><p>Two shop tills lose their link. CP = both stop selling the last item so it can't oversell. AP = both keep selling and reconcile later (maybe oversold). Money → CP. Instagram likes → AP.</p></div>
+<h2>PACELC — the fuller picture</h2>
+<p>CAP only describes behavior <em>during a partition</em>. PACELC adds: <strong>E</strong>lse (when the network is fine) you still trade <strong>L</strong>atency vs <strong>C</strong>onsistency. Waiting for every replica to confirm a write is consistent but slow; replying after one node is fast but may be stale.</p>
+<div class="plain">during Partition:  choose A or C
+Else (normal):     choose L (latency) or C (consistency)</div>
+<div class="box gotcha"><div class="bt">▲ "Consistency" means two different things</div><p>CAP's C (linearizability — every read sees the latest write) is <em>not</em> ACID's C (constraints hold). A database can be ACID-compliant and still be an AP system across nodes. Interviewers love this distinction — don't conflate them.</p></div>
+<div class="box key"><div class="bt">◆ Real systems tune per-operation</div><p>It's rarely all-or-nothing. Postgres is CP by default; Cassandra/DynamoDB let you pick a <em>consistency level per query</em> (ONE = fast/AP-ish, QUORUM = safer). You choose CP for a checkout, AP for a view counter — in the same app.</p></div>
+</section>
+
+<section class="lesson" data-m="1" data-n="1.6" data-mod="Foundations · CAP" data-title="Consistency & Replication">
+<h1>Consistency &amp; Replication</h1>
+<p class="lead">Replication copies data to more machines — for read scale and survival. The cost: copies can lag.</p>
+<svg class="dia" viewBox="0 0 440 170" role="img" aria-label="Primary replica replication">
+  <rect class="nb hl" x="170" y="18" width="100" height="38" rx="7"/><text class="nt" x="220" y="41" text-anchor="middle">Primary (write)</text>
+  <line class="ln" x1="200" y1="56" x2="90" y2="110"/><line class="ln" x1="240" y1="56" x2="350" y2="110"/>
+  <rect class="nb" x="30" y="110" width="120" height="36" rx="7"/><text class="nt" x="90" y="132" text-anchor="middle">Replica (read)</text>
+  <rect class="nb" x="290" y="110" width="120" height="36" rx="7"/><text class="nt" x="350" y="132" text-anchor="middle">Replica (read)</text>
+</svg>
+<div class="plain"><b>Strong consistency</b>     read always sees latest write (slower, coordinated)
+<b>Eventual consistency</b>   replicas converge after a delay (fast, may read stale)</div>
+<div class="box gotcha"><div class="bt">▲ Read-your-writes trap</div><p>User updates their profile (write → primary), then reloads (read → replica that hasn't caught up) and sees the old value. Fix: route that user's reads to the primary for a moment, or read from primary after writes.</p></div>
+<h2>Sync vs async replication</h2>
+<div class="plain"><b>Synchronous</b>   primary waits for replica to confirm before acking the write
+               ✅ no data loss on failover   ❌ slower writes
+<b>Asynchronous</b>  primary acks immediately, ships to replicas after
+               ✅ fast writes   ❌ a crash can lose the last few writes (replication lag)</div>
+<p>Most setups run async for speed and accept a tiny loss window. Financial systems use sync (or quorum) for the writes that must never vanish.</p>
+<h2>Failover</h2>
+<p>If the primary dies, a replica is <strong>promoted</strong> to primary. Automated tools (Patroni, RDS multi-AZ) detect the failure and repoint traffic. The gap between "primary dead" and "replica promoted" is downtime — and any un-replicated async writes are lost.</p>
+<div class="box key"><div class="bt">◆ Laravel</div><p>Configure separate <code>read</code> and <code>write</code> connections in <code>config/database.php</code>. Laravel routes writes to the primary and reads to replicas automatically — and stays "sticky" to the primary for the rest of a request after a write, sidestepping the read-your-writes trap.</p></div>
+</section>
+
+<!-- ===================== MODULE 2 · DATA ===================== -->
+
+<section class="lesson" data-m="2" data-n="2.1" data-mod="Data · DATABASE" data-title="SQL vs NoSQL">
+<h1>SQL vs NoSQL</h1>
+<div class="box problem"><div class="bt">⚡ Real problem</div>
+<p>"Just use MongoDB, it scales" — said before anyone asked what the data looks like.</p></div>
+<p class="lead">Pick by data shape and access pattern, not hype.</p>
+<div class="plain"><b>SQL (Postgres/MySQL)</b>
+  relations, joins, transactions, strong schema
+  → orders, payments, anything relational + consistent
+
+<b>NoSQL</b>
+  document (Mongo)   → flexible/nested, few joins
+  key-value (Redis)  → cache, sessions, counters
+  wide-column        → massive write throughput, time-series
+  graph (Neo4j)      → relationship-heavy (social, fraud)</div>
+<h2>Choose by access pattern, not by hype</h2>
+<div class="plain">Need joins, transactions, ad-hoc queries?      → SQL
+Fixed key → value lookups, huge write volume?  → key-value / wide-column
+Deeply nested docs, schema changes often?      → document
+Traverse relationships (friends-of-friends)?   → graph</div>
+<div class="box key"><div class="bt">◆ Default to SQL — and use its escape hatches</div><p>Most apps are relational. Postgres scales far further than people assume: read replicas, partitioning, and <code>JSONB</code> columns for the genuinely flexible bits (so you get schema-on-read <em>inside</em> a relational DB, indexed with GIN). Reach for a separate NoSQL store for a <em>specific</em> access pattern SQL handles poorly — not as a default, and rarely as your only database.</p></div>
+<div class="box gotcha"><div class="bt">▲ "NoSQL scales" is half the story</div><p>NoSQL scales writes by <em>dropping</em> things SQL gives you: joins, multi-row transactions, and strong consistency. You don't get scale for free — you trade query flexibility and consistency for it. If you later need those back, you rebuild them in application code (badly). Choose the trade deliberately.</p></div>
+</section>
+
+<section class="lesson" data-m="2" data-n="2.2" data-mod="Data · DATABASE" data-title="Index Internals">
+<h1>Index Internals</h1>
+<p class="lead">An index is a sorted structure — usually a B-tree — that turns a scan into a jump.</p>
+<div class="box tip"><div class="bt">◆ B-tree</div><p>A shallow, wide, sorted tree. Finding a value is a handful of hops (O(log n)) instead of reading every row (O(n)). Sorted order also serves <code>ORDER BY</code> and range queries for free.</p></div>
+<pre><span class="lbl">sql</span><code>EXPLAIN ANALYZE SELECT * FROM orders WHERE user_id = <span class="st">42</span>;
+<span class="cm">-- Seq Scan  = reading everything (bad on big tables)</span>
+<span class="cm">-- Index Scan = jumping straight there (good)</span></code></pre>
+<div class="plain"><b>Composite (a,b)</b>  helps  a  and  a AND b  — not  b  alone (leftmost prefix)
+<b>Covering</b>        index holds every column the query needs → never touch the table
+<b>Partial</b>         index only some rows (WHERE active = true) → smaller, faster</div>
+<h2>Clustered vs non-clustered</h2>
+<div class="plain"><b>Clustered</b>      the table itself is stored in index order (the primary key in InnoDB).
+               one per table; range scans on it are very fast.
+<b>Non-clustered</b>  a separate structure pointing back to rows.
+               many per table; a lookup may need a second hop to the table.</div>
+<p>In MySQL/InnoDB the primary key <em>is</em> the clustered index, so a random UUID PK scatters writes across the table; a sequential id keeps inserts local. In Postgres, tables are heaps and all indexes are secondary — <code>CLUSTER</code> is a one-time reorder.</p>
+<div class="box gotcha"><div class="bt">▲ Indexes aren't free</div><p>Each one costs disk and slows every write (insert/update must maintain it). Ten indexes on a hot write table can halve write throughput and bloat storage. Index the columns you filter, join, and sort on — measure with <code>EXPLAIN</code>, and drop indexes nothing uses (<code>pg_stat_user_indexes</code> shows unused ones).</p></div>
+</section>
+
+<section class="lesson" data-m="2" data-n="2.3" data-mod="Data · DATABASE" data-title="Sharding & Partitioning">
+<h1>Sharding &amp; Partitioning</h1>
+<div class="box problem"><div class="bt">⚡ Real problem</div>
+<p>One table has 2 billion rows. It no longer fits one machine's memory or disk comfortably.</p></div>
+<p class="lead">Split the data across pieces.</p>
+<div class="plain"><b>Partitioning</b>  split ONE database's table into chunks (by date, range)
+<b>Sharding</b>     split across MANY databases/machines (by a shard key)</div>
+<svg class="dia" viewBox="0 0 440 150" role="img" aria-label="Sharding by user id">
+  <rect class="nb hl" x="160" y="14" width="120" height="34" rx="7"/><text class="nt" x="220" y="35" text-anchor="middle">Router (shard key)</text>
+  <line class="ln" x1="190" y1="48" x2="80" y2="100"/><line class="ln" x1="220" y1="48" x2="220" y2="100"/><line class="ln" x1="250" y1="48" x2="360" y2="100"/>
+  <rect class="nb" x="30" y="100" width="100" height="34" rx="7"/><text class="nt" x="80" y="121" text-anchor="middle">Shard A id%3=0</text>
+  <rect class="nb" x="170" y="100" width="100" height="34" rx="7"/><text class="nt" x="220" y="121" text-anchor="middle">Shard B id%3=1</text>
+  <rect class="nb" x="310" y="100" width="100" height="34" rx="7"/><text class="nt" x="360" y="121" text-anchor="middle">Shard C id%3=2</text>
+</svg>
+<h2>Choosing a shard key</h2>
+<div class="plain"><b>Hash of id</b>     even spread, but range queries hit every shard
+<b>Range (date)</b>   great for time-range queries, but the newest shard is a hotspot
+<b>Tenant/geo</b>     all of one customer's data on one shard — clean isolation</div>
+<p>The shard key is the most important — and least reversible — decision. A bad key creates hotspots (one shard does all the work) or forces scatter-gather queries (every read hits all shards).</p>
+<div class="box gotcha"><div class="bt">▲ Sharding is a one-way door</div><p>Cross-shard joins and transactions become painful or impossible; unique constraints across shards need coordination; re-sharding is a migration project with downtime risk. <strong>Exhaust every cheaper option first</strong> — read replicas, aggressive caching, table partitioning, a bigger box. Shard only when a single primary genuinely can't hold the write load, and you've measured it.</p></div>
+</section>
+
+<section class="lesson" data-m="2" data-n="2.4" data-mod="Data · DATABASE" data-title="Transactions & Isolation">
+<h1>Transactions &amp; Isolation</h1>
+<p class="lead">A transaction makes many statements behave as one atomic unit. Isolation levels decide how much concurrent transactions see of each other.</p>
+<div class="plain"><b>Read Uncommitted</b>  sees others' uncommitted writes (dirty reads)
+<b>Read Committed</b>    only committed data (Postgres default)
+<b>Repeatable Read</b>   same query, same result within the txn
+<b>Serializable</b>      as if transactions ran one at a time (safest, slowest)</div>
+<div class="box key"><div class="bt">◆ The anomalies</div><p><strong>Dirty read</strong>: see uncommitted data. <strong>Non-repeatable read</strong>: same row changes mid-txn. <strong>Phantom</strong>: new rows appear matching your filter. Higher isolation removes more anomalies at the cost of concurrency.</p></div>
+<pre><span class="lbl">php · Laravel</span><code>DB::transaction(<span class="kw">function</span> () {
+    $acc = Account::where(<span class="st">'id'</span>, <span class="st">1</span>)->lockForUpdate()->first(); <span class="cm">// pessimistic</span>
+    $acc->balance -= <span class="st">100</span>;
+    $acc->save();
+}, attempts: <span class="st">3</span>); <span class="cm">// retry on deadlock</span></code></pre>
+<div class="box gotcha"><div class="bt">▲ Deadlocks are normal — plan for them</div><p>Two transactions lock rows in opposite order and wait on each other forever; the DB kills one with a deadlock error. You don't prevent them entirely — you (1) always acquire locks in a <em>consistent order</em>, (2) keep transactions short, and (3) <em>retry</em> the victim (Laravel's <code>attempts:</code>). A deadlock is a retry signal, not a crash.</p></div>
+<div class="box gotcha"><div class="bt">▲ Never do slow work inside a transaction</div><p>A transaction holds its locks until commit. An HTTP call or email inside <code>DB::transaction()</code> holds those locks for seconds, blocking every other writer and cascading into timeouts. Do external work <em>after</em> commit — or dispatch it to a queue.</p></div>
+</section>
+
+<!-- ===================== MODULE 3 · NETWORKING ===================== -->
+
+<section class="lesson" data-m="3" data-n="3.1" data-mod="Delivery · NETWORK" data-title="DNS">
+<h1>DNS</h1>
+<div class="box problem"><div class="bt">⚡ Real problem</div>
+<p>Browsers speak IP addresses. Humans type <code>app.com</code>. Something must translate.</p></div>
+<p class="lead">DNS is a distributed lookup: name → IP. It resolves through a hierarchy, cached at every level.</p>
+<div class="flow"><div class="flow-row">
+<span class="node">Browser cache</span><span class="arrow">→</span>
+<span class="node">OS cache</span><span class="arrow">→</span>
+<span class="node hl">Resolver (8.8.8.8)</span><span class="arrow">→</span>
+<span class="node">Root</span><span class="arrow">→</span>
+<span class="node">TLD (.com)</span><span class="arrow">→</span>
+<span class="node">Authoritative</span></div>
+<div class="flow-cap">Checked fastest-first. Only a miss walks the full hierarchy.</div></div>
+<div class="plain"><b>Recursive</b>  browser → resolver: "give me the final IP"
+<b>Iterative</b>  resolver → hierarchy: each server points to the next
+<b>TTL</b>       how long an answer may be cached (freshness vs load trade)</div>
+<h2>The records you'll touch</h2>
+<div class="plain"><b>A / AAAA</b>  name → IPv4 / IPv6
+<b>CNAME</b>     name → another name (alias; app.com → lb.provider.com)
+<b>MX</b>        where email goes
+<b>TXT</b>       verification, SPF/DKIM
+<b>NS</b>        which servers are authoritative for the zone</div>
+<div class="box key"><div class="bt">◆ System-design lever</div><p>DNS is the first place traffic is shaped. It can load-balance (return rotating IPs), route users to the nearest region (GeoDNS / Anycast), and fail over (health-checked DNS drops a dead region's IP). CDNs work partly through DNS — your <code>CNAME</code> points at their edge.</p></div>
+<div class="box gotcha"><div class="bt">▲ TTL is a double-edged failover tool</div><p>Low TTL = fast failover (clients re-resolve quickly) but more DNS traffic. High TTL = fewer lookups but a dead IP stays cached for hours. And clients/ISPs often ignore TTLs and over-cache — so <strong>DNS is slow, unreliable failover</strong>. For fast failover, prefer a load balancer with a stable IP over DNS changes.</p></div>
+</section>
+
+<section class="lesson" data-m="3" data-n="3.2" data-mod="Delivery · NETWORK" data-title="HTTP, HTTPS & TLS">
+<h1>HTTP, HTTPS &amp; TLS</h1>
+<p class="lead">HTTP is a stateless request/response text protocol over TCP. HTTPS wraps it in TLS for privacy, integrity, and server identity.</p>
+<div class="plain"><b>HTTP/1.1</b>  persistent connections; head-of-line blocking
+<b>HTTP/2</b>   multiplexing (many requests, one connection), binary, header compression
+<b>HTTP/3</b>   runs on QUIC (UDP) — faster setup, better on bad networks</div>
+<h2>The TLS handshake</h2>
+<div class="plain"><b>1</b> ClientHello   — versions, cipher suites, key share
+<b>2</b> ServerHello   — chosen cipher, certificate, key share
+<b>3</b> both derive a shared secret (ECDHE) → encrypted from here
+TLS 1.3 does this in ONE round trip.</div>
+<div class="box key"><div class="bt">◆ Three guarantees</div><p><strong>Confidentiality</strong> (encrypted), <strong>Integrity</strong> (tamper-evident), <strong>Authentication</strong> (real server via certificate). Port 80 plain, 443 TLS.</p></div>
+<h2>Head-of-line blocking, across versions</h2>
+<div class="plain"><b>HTTP/1.1</b>  one request at a time per connection → browsers open ~6 connections
+<b>HTTP/2</b>   many streams on ONE connection, but a lost TCP packet stalls ALL streams
+             (HOL blocking moved from app layer down to TCP)
+<b>HTTP/3</b>   QUIC over UDP — independent streams, a lost packet stalls only its own stream</div>
+<div class="box tip"><div class="bt">◆ Idempotency &amp; retries</div><p>GET/PUT/DELETE repeated = same final state; POST/PATCH not. This governs retry safety: a proxy or client may safely retry a GET on a dropped connection, but blindly retrying a POST can double-charge. For POSTs that must be retry-safe, use an <strong>idempotency key</strong> (Module 4).</p></div>
+<div class="box gotcha"><div class="bt">▲ Don't roll your own TLS or store plaintext</div><p>Terminate TLS at a proxy/CDN with a managed certificate (Let's Encrypt auto-renew). Never implement crypto yourself, never log tokens or full card numbers, and redirect all HTTP → HTTPS with HSTS so downgrade attacks can't strip it.</p></div>
+</section>
+
+<section class="lesson" data-m="3" data-n="3.3" data-mod="Delivery · NETWORK" data-title="Reverse Proxy & API Gateway">
+<h1>Reverse Proxy &amp; API Gateway</h1>
+<p class="lead">A reverse proxy sits in front of your servers and acts on their behalf. An API gateway is a smarter one for microservices.</p>
+<div class="plain"><b>Reverse proxy (Nginx)</b>
+  load balancing · TLS termination · caching · compression · hide backends
+
+<b>API gateway</b>
+  all of the above + auth · rate limiting · routing to many services
+  · request aggregation · versioning</div>
+<div class="box key"><div class="bt">◆ TLS termination</div><p>The proxy decrypts HTTPS and forwards plain HTTP internally — your app servers skip the crypto CPU cost. One place to manage certificates.</p></div>
+<div class="box gotcha"><div class="bt">▲ Forward vs reverse</div><p><strong>Forward</strong> proxy acts for the <em>client</em> (hides who's asking — corporate/VPN egress). <strong>Reverse</strong> proxy acts for the <em>server</em> (hides the backend, spreads load). Same machine role, opposite side of the conversation.</p></div>
+<div class="box gotcha"><div class="bt">▲ The gateway can become a bottleneck / SPOF</div><p>Everything flows through the gateway, so it's a single point of failure and a scaling chokepoint. Run it redundantly, keep per-request work cheap (auth via a fast token check, not a DB call per request), and don't stuff business logic into it — it routes and protects, it doesn't compute.</p></div>
+<div class="box key"><div class="bt">◆ Client → server IP</div><p>Behind a proxy your app sees the <em>proxy's</em> IP, not the user's. The real client IP arrives in <code>X-Forwarded-For</code>. In Laravel, configure <code>TrustProxies</code> so <code>$request->ip()</code> and rate limiting see the true client — otherwise you rate-limit the proxy and lock everyone out together.</p></div>
+</section>
+
+<section class="lesson" data-m="3" data-n="3.4" data-mod="Delivery · NETWORK" data-title="CDN & Edge Caching">
+<h1>CDN &amp; Edge Caching</h1>
+<div class="box problem"><div class="bt">⚡ Real problem</div>
+<p>Server in New York. User in Tokyo. Every image crosses the Pacific — on every request.</p></div>
+<p class="lead">A CDN puts copies of your content on edge servers near users worldwide.</p>
+<div class="flow"><div class="flow-row">
+<span class="node">Tokyo user</span><span class="arrow">→</span>
+<span class="node hl">Tokyo edge (hit)</span><span class="arrow">→</span>
+<span class="node">served in ms</span></div>
+<div class="flow-cap">Only a cache miss travels back to the New York origin.</div></div>
+<h2>Controlling what caches, and for how long</h2>
+<pre><span class="lbl">http · cache headers</span><code>Cache-Control: public, max-age=31536000, immutable   <span class="cm"># hashed asset: cache forever</span>
+Cache-Control: no-store                                <span class="cm"># /account: never cache</span>
+Cache-Control: public, s-maxage=60                     <span class="cm"># CDN 60s, browser shorter</span></code></pre>
+<p>The trick for static assets: put a content hash in the filename (<code>app.9f2c.js</code>). Cache it forever; when the content changes the filename changes, so there's no stale-cache problem and no purge needed. This is what Vite/Mix do.</p>
+<div class="box key"><div class="bt">◆ Beyond speed</div><p>CDNs also absorb DDoS (traffic hits the edge, not your origin), terminate TLS at the edge, and offload static bytes from your servers. Cache hashed assets aggressively; for dynamic HTML use short <code>s-maxage</code> or explicit purges on publish.</p></div>
+<div class="box gotcha"><div class="bt">▲ Never cache authenticated responses at the CDN</div><p>Caching a page that contains one user's data at a shared edge can serve <em>their</em> data to the next visitor. Mark per-user responses <code>Cache-Control: private, no-store</code>, and vary on auth. A CDN mis-cache of logged-in content is a real, embarrassing data leak.</p></div>
+</section>
+
+<section class="lesson" data-m="3" data-n="3.5" data-mod="Delivery · NETWORK" data-title="WebSockets & Real-Time">
+<h1>WebSockets &amp; Real-Time</h1>
+<div class="box problem"><div class="bt">⚡ Real problem</div>
+<p>Chat, live notifications, presence. HTTP is request/response — the server can't push. Polling every second wastes everything.</p></div>
+<p class="lead">A WebSocket upgrades one HTTP connection into a persistent, full-duplex TCP pipe. Either side sends anytime.</p>
+<div class="plain"><b>1</b> Client sends HTTP with  Upgrade: websocket
+<b>2</b> Server replies  101 Switching Protocols
+<b>3</b> TCP stays open; both exchange frames — no new handshakes</div>
+<div class="box gotcha"><div class="bt">▲ No auto-reconnect, no dead-detection</div><p>TCP thinks a silent connection is alive. Production needs <strong>ping/pong heartbeats</strong> to detect dead clients and <strong>exponential-backoff reconnection</strong> (1→2→4→8s, cap). Reconnecting makes a <em>new</em> socket + restores state.</p></div>
+<div class="box gotcha"><div class="bt">▲ Scaling connections</div><p>100k WebSockets = 100k open sockets + file descriptors, held open idle — not 100k threads. The bottleneck is memory per connection and fan-out, not CPU. Classic PHP-FPM (one process per request) can't hold long-lived connections, which is why WebSocket servers use an event loop.</p></div>
+<div class="box key"><div class="bt">◆ Laravel: broadcasting + the backplane problem</div><p><code>broadcast(new MessageSent($msg))</code> pushes an event to connected clients (via Laravel Reverb, an event-loop server, or Pusher). But if users are spread across 3 WebSocket servers, a message on server A must reach subscribers on B and C — that's the <strong>backplane</strong>: a Redis pub/sub layer all servers subscribe to, so any server can fan a message out to all. Clients receive it with Laravel Echo.</p></div>
+<div class="box gotcha"><div class="bt">▲ When NOT to use WebSockets</div><p>For one-way, infrequent server→client updates, <strong>Server-Sent Events (SSE)</strong> or simple polling is far cheaper — no persistent bidirectional socket to manage. Reserve WebSockets for genuinely bidirectional, low-latency, high-frequency traffic (chat, live collaboration, trading).</p></div>
+</section>
+
+<!-- ===================== MODULE 4 · ARCHITECTURE ===================== -->
+
+<section class="lesson" data-m="4" data-n="4.1" data-mod="Architecture · SERVICES" data-title="Monolith vs Microservices">
+<h1>Monolith vs Microservices</h1>
+<div class="box problem"><div class="bt">⚡ Real problem</div>
+<p>"Let's do microservices" — on a 3-person team, before product-market fit.</p></div>
+<div class="plain"><b>Monolith</b>       one deployable. Simple, fast to build, one DB, easy transactions.
+                 Pain: one big codebase, scale all-or-nothing, one deploy risk.
+
+<b>Microservices</b>  many services. Independent deploy/scale, team autonomy.
+                 Pain: network calls, distributed txns, observability, ops load.</div>
+<div class="box tip"><div class="bt">◆ The honest default</div><p>Start with a well-structured <strong>modular monolith</strong> — clear internal boundaries, one deployable. Split out a service only when a real boundary <em>and</em> a real scaling/ownership need appear together. Microservices trade code complexity for operational complexity (networks, deploys, monitoring, distributed debugging) — pay that price when you must, not before.</p></div>
+<div class="box gotcha"><div class="bt">▲ The distributed monolith — worst of both</div><p>Split into services that still call each other synchronously for every operation and share a database, and you get microservices' operational pain <em>with</em> a monolith's coupling: one service down takes the rest with it, and you can't deploy independently. If services can't fail and deploy independently, they aren't microservices — they're a monolith with network latency bolted in.</p></div>
+<div class="box key"><div class="bt">◆ Conway's Law</div><p>Systems mirror the org that builds them. Microservices work when you have multiple teams that need to own and ship independently. For one small team, service boundaries just add coordination overhead across a network. Match architecture to team structure.</p></div>
+</section>
+
+<section class="lesson" data-m="4" data-n="4.2" data-mod="Architecture · SERVICES" data-title="Message Queues & Async">
+<h1>Message Queues &amp; Async</h1>
+<p class="lead">A queue decouples producers from consumers. Producer drops a message and moves on; a worker handles it later.</p>
+<div class="flow"><div class="flow-row">
+<span class="node">Producer (API)</span><span class="arrow">→</span>
+<span class="node hl">Queue</span><span class="arrow">→</span>
+<span class="node">Worker 1</span><span class="node">Worker 2</span></div>
+<div class="flow-cap">Buffers spikes · smooths load · retries on failure · scales consumers independently.</div></div>
+<div class="plain"><b>Cuts latency</b>   user doesn't wait for slow work
+<b>Absorbs spikes</b> queue holds the backlog; workers drain at their pace
+<b>Decouples</b>      producer and consumer scale and fail independently</div>
+<h2>Delivery semantics</h2>
+<div class="plain"><b>At-most-once</b>   fire and forget — may lose messages, never duplicates
+<b>At-least-once</b>  retry until acked — never lost, MAY duplicate (the common default)
+<b>Exactly-once</b>   the holy grail — expensive, and often really "at-least-once + idempotency"</div>
+<div class="box gotcha"><div class="bt">▲ At-least-once means duplicates <em>will</em> happen</div><p>A consumer processes a message, then crashes before sending its ack — the broker re-delivers to someone else. So "exactly-once" in practice = at-least-once delivery + <strong>idempotent</strong> consumers (dedupe by message id). Design every consumer to survive seeing the same message twice, or you double-charge, double-email, double-ship.</p></div>
+<div class="box gotcha"><div class="bt">▲ Ordering isn't guaranteed across a queue</div><p>With multiple consumers pulling in parallel, messages finish out of order. If order matters (events for one account), partition by a key so all related messages go to one consumer in sequence — the same idea as a Kafka partition key.</p></div>
+</section>
+
+<section class="lesson" data-m="4" data-n="4.3" data-mod="Architecture · SERVICES" data-title="Event-Driven Architecture">
+<h1>Event-Driven Architecture</h1>
+<p class="lead">Services don't call each other directly. They emit <strong>events</strong> ("OrderPlaced") to a broker; interested services subscribe.</p>
+<svg class="dia" viewBox="0 0 440 170" role="img" aria-label="Event driven fan out">
+  <rect class="nb hl" x="20" y="66" width="90" height="38" rx="7"/><text class="nt" x="65" y="89" text-anchor="middle">Order svc</text>
+  <line class="ln" x1="110" y1="85" x2="180" y2="85"/>
+  <rect class="nb" x="180" y="64" width="90" height="42" rx="7"/><text class="nt" x="225" y="90" text-anchor="middle">Broker</text>
+  <line class="ln" x1="270" y1="78" x2="350" y2="30"/><line class="ln" x1="270" y1="85" x2="350" y2="85"/><line class="ln" x1="270" y1="92" x2="350" y2="140"/>
+  <rect class="nb" x="350" y="14" width="80" height="32" rx="7"/><text class="nt" x="390" y="34" text-anchor="middle">Email</text>
+  <rect class="nb" x="350" y="69" width="80" height="32" rx="7"/><text class="nt" x="390" y="89" text-anchor="middle">Inventory</text>
+  <rect class="nb" x="350" y="124" width="80" height="32" rx="7"/><text class="nt" x="390" y="144" text-anchor="middle">Analytics</text>
+</svg>
+<div class="box key"><div class="bt">◆ Why</div><p>Add a new consumer (fraud check, loyalty points) without touching the order service. Loose coupling, independent scaling. The cost: eventual consistency and harder debugging (trace an event across services).</p></div>
+<div class="plain"><b>Queue</b>  point-to-point, one consumer takes each message (work distribution)
+<b>Pub/sub</b> broadcast, every subscriber gets a copy (event fan-out)</div>
+<h2>The distributed-transaction problem: Sagas</h2>
+<p>Order service, Payment service, Inventory service — each with its own database. There's no cross-service <code>DB::transaction()</code>. So how do you "charge <em>and</em> reserve stock, or neither"?</p>
+<p>A <strong>Saga</strong>: a sequence of local transactions, each emitting an event that triggers the next. If a step fails, run <strong>compensating actions</strong> to undo the earlier ones (refund the charge, release the stock).</p>
+<div class="plain">OrderCreated → ChargeCard → ReserveStock → Confirm
+   if ReserveStock fails → RefundCard (compensate) → CancelOrder</div>
+<div class="box gotcha"><div class="bt">▲ Events trade consistency for coupling</div><p>Event-driven systems are <em>eventually</em> consistent — for a moment, the order exists but stock isn't reserved yet. And debugging is harder: a single user action becomes a trail of events across services, so you need distributed tracing (Module 5) to follow it. You buy loose coupling and independent scaling by paying in consistency and observability.</p></div>
+</section>
+
+<section class="lesson" data-m="4" data-n="4.4" data-mod="Architecture · SERVICES" data-title="Kafka Internals">
+<h1>Kafka Internals</h1>
+<p class="lead">Kafka is a distributed, append-only log. Not a "queue that deletes on read" — a durable, replayable stream.</p>
+<div class="plain"><b>Topic</b>       named stream, split into <b>partitions</b>
+<b>Partition</b>   ordered, append-only log; unit of parallelism
+<b>Offset</b>      a consumer's position in a partition
+<b>Consumer group</b>  partitions divided across group members</div>
+<div class="box key"><div class="bt">◆ Why it's different</div><p>Messages aren't deleted when read — they stay for a retention window. Consumers track their own offset, so you can <strong>replay</strong> history, add new consumers that read from the start, and get massive throughput via partitioning. Order is guaranteed <em>within</em> a partition, not across.</p></div>
+<div class="box gotcha"><div class="bt">▲ Partition key choice</div><p>Same key → same partition → ordered. Pick a key that spreads load evenly but keeps related events together (e.g. <code>user_id</code>). A skewed key (one whale user, or a null key) makes one partition a hotspot while others idle.</p></div>
+<h2>Consumer groups &amp; parallelism</h2>
+<p>Partitions are the unit of parallelism: a topic with 6 partitions can be read by up to 6 consumers in a group, one partition each. Add a 7th consumer and it sits idle. So <strong>partition count caps your consumer parallelism</strong> — choose it with headroom.</p>
+<div class="box gotcha"><div class="bt">▲ Rebalancing pauses everything</div><p>When a consumer joins or leaves, Kafka <em>rebalances</em> — reassigns partitions across the group, briefly pausing consumption. Frequent crashes/restarts cause constant rebalances and lag. Keep consumers stable and tune session timeouts.</p></div>
+<div class="box key"><div class="bt">◆ Kafka vs RabbitMQ, sharply</div><p><strong>RabbitMQ</strong>: a smart broker — routes, and messages vanish once acked. Great for task queues and complex routing. <strong>Kafka</strong>: a dumb, durable log — consumers track their own offset and can replay. Great for event streaming, analytics, and multiple independent consumers of the same stream.</p></div>
+</section>
+
+<section class="lesson" data-m="4" data-n="4.5" data-mod="Architecture · SERVICES" data-title="Idempotency & Rate Limiting">
+<h1>Idempotency &amp; Rate Limiting</h1>
+<h2>Idempotency</h2>
+<p>An operation you can repeat safely with the same result. Essential because networks retry.</p>
+<pre><span class="lbl">php · idempotency key</span><code><span class="cm">// client sends a unique key; server does the work once</span>
+<span class="kw">if</span> (Cache::has(<span class="st">"idem:$key"</span>)) <span class="kw">return</span> Cache::get(<span class="st">"idem:$key"</span>);
+$result = $this->charge($order);
+Cache::put(<span class="st">"idem:$key"</span>, $result, now()->addDay());
+<span class="kw">return</span> $result;</code></pre>
+<h2>Rate limiting</h2>
+<div class="plain"><b>Token bucket</b>    refill tokens over time; each request spends one (allows bursts)
+<b>Fixed window</b>    N requests per minute (simple; boundary bursts)
+<b>Sliding window</b>  smooth rolling count (fairer)</div>
+<div class="box gotcha"><div class="bt">▲ Idempotency key: reserve before you work</div><p>The subtle bug: two identical requests arrive at once, both see "no key yet," both charge. Fix by atomically <em>claiming</em> the key first (<code>SET key ... NX</code> — set-if-not-exists). The winner processes; the loser returns the in-progress/cached result. The key must be stored transactionally with the side effect, or a crash between them re-charges.</p></div>
+<div class="box key"><div class="bt">◆ Laravel rate limiting</div><p><code>RateLimiter::for('api', fn($r) => Limit::perMinute(60)->by($r->user()?->id ?: $r->ip()))</code>. Returns <code>429</code> with a <code>Retry-After</code> header when exceeded. It's Redis-backed, so the limit is shared across every app server — limiting per-instance would let N servers allow N× the traffic. Key by user id when authenticated, IP otherwise.</p></div>
+</section>
+
+<!-- ===================== MODULE 5 · RELIABILITY ===================== -->
+
+<section class="lesson" data-m="5" data-n="5.1" data-mod="Reliability · RESILIENCE" data-title="Redundancy & Failover">
+<h1>Redundancy &amp; Failover</h1>
+<p class="lead">No single machine is trustworthy. Reliability = no single point of failure.</p>
+<div class="plain"><b>Redundancy</b>  run 2+ of everything (app, DB, LB, region)
+<b>Failover</b>    when one dies, another takes over automatically
+<b>SPOF</b>        single point of failure — the thing to hunt and eliminate</div>
+<div class="box gotcha"><div class="bt">▲ The load balancer is a SPOF</div><p>You added the LB to remove SPOFs — now it's one. Run redundant LBs with a floating/virtual IP that fails over. The DB primary is another: use a replica that can be promoted.</p></div>
+<h2>Active-active vs active-passive</h2>
+<div class="plain"><b>Active-passive</b>  standby sits idle, takes over on failure
+                 ✅ simple   ❌ paying for idle capacity, failover has a gap
+<b>Active-active</b>   all nodes serve traffic; one dying just sheds its share
+                 ✅ no idle cost, instant absorption   ❌ needs stateless design + sync</div>
+<div class="box key"><div class="bt">◆ Nines cost exponentially</div><p>99.9% = ~8.7h downtime/year. 99.99% = ~52min. 99.999% = ~5min. Each nine multiplies cost — redundant everything, multi-region, automated failover, on-call. Pick the target the product and revenue actually justify; don't chase five nines for a blog.</p></div>
+<div class="box gotcha"><div class="bt">▲ Test your failover, or it doesn't exist</div><p>A standby you've never failed over to is a standby you don't know works. Backups you've never restored are Schrödinger's backups. Run game days / chaos drills — kill a node in production-like conditions and confirm the system actually survives.</p></div>
+</section>
+
+<section class="lesson" data-m="5" data-n="5.2" data-mod="Reliability · RESILIENCE" data-title="Timeouts, Retries, Circuit Breakers">
+<h1>Timeouts, Retries &amp; Circuit Breakers</h1>
+<div class="box problem"><div class="bt">⚡ Real problem</div>
+<p>A downstream API hangs. Your requests pile up waiting. Threads exhaust. Your whole app goes down — because <em>their</em> service was slow.</p></div>
+<div class="plain"><b>Timeout</b>          never wait forever; fail fast
+<b>Retry + backoff</b>  retry transient failures, spaced out + jitter
+<b>Circuit breaker</b>  after N failures, stop calling for a while → fail instantly</div>
+<div class="flow"><div class="flow-row">
+<span class="node ok">Closed (normal)</span><span class="arrow">→ failures →</span>
+<span class="node down">Open (reject fast)</span><span class="arrow">→ wait →</span>
+<span class="node hl">Half-open (test)</span></div>
+<div class="flow-cap">The breaker stops a slow dependency from dragging you down with it.</div></div>
+<h2>Bulkheads &amp; timeout budgets</h2>
+<p><strong>Bulkhead</strong> (from ship design): isolate resources per dependency so one drowning call can't sink everything. Give the flaky recommendations API its own small connection pool — when it hangs, it exhausts <em>its</em> pool, not your whole app's threads.</p>
+<p><strong>Timeout budget</strong>: if the user's request has 3 seconds and it fans out to 3 services, each can't wait 3 seconds. Budget the total across the chain, or one slow leaf blows the whole request.</p>
+<div class="box gotcha"><div class="bt">▲ Retries can <em>cause</em> the outage</div><p>A service gets slow; every caller retries; the retries triple the load and finish it off — a retry storm / thundering herd. Always add <strong>jitter</strong> (randomized backoff), a hard retry cap, and a circuit breaker so retries stop entirely once a service is clearly down. Retries without these amplify failures instead of absorbing them.</p></div>
+</section>
+
+<section class="lesson" data-m="5" data-n="5.3" data-mod="Reliability · RESILIENCE" data-title="Observability">
+<h1>Observability</h1>
+<p class="lead">You can't fix what you can't see. Three pillars.</p>
+<div class="plain"><b>Logs</b>     discrete events — "what happened" (structured, searchable)
+<b>Metrics</b>  numbers over time — "how much / how fast" (p95, error rate, QPS)
+<b>Traces</b>   one request across services — "where did the time go"</div>
+<div class="box key"><div class="bt">◆ Metrics find it, traces locate it, logs explain it</div><p>A metric alert (p95 spiked) tells you <em>something</em> is wrong. A distributed trace shows <em>which</em> service/span is slow. Logs on that span tell you <em>why</em>. Use all three together.</p></div>
+<h2>Correlation IDs — the thread through the maze</h2>
+<p>Attach a unique <code>request_id</code> at the edge and pass it through every service, log line, and job. Now one grep reassembles a single user's journey across the whole system. Without it, distributed logs are noise.</p>
+<div class="box tip"><div class="bt">◆ Golden signals</div><p><strong>Latency, Traffic, Errors, Saturation.</strong> Dashboard these four per service and you catch most problems before users do. Alert on <em>symptoms</em> users feel (error rate, p95) — not on causes (CPU 80% might be totally fine).</p></div>
+<div class="box key"><div class="bt">◆ SLI / SLO / error budget</div><p><strong>SLI</strong> = the measured number (99.95% of requests &lt; 300ms). <strong>SLO</strong> = the target (99.9%). The gap is your <strong>error budget</strong> — how much unreliability you're allowed. Budget left → ship features faster. Budget spent → stop and fix reliability. It turns "how reliable?" into a number both engineers and product agree on.</p></div>
+</section>
+
+<section class="lesson" data-m="5" data-n="5.4" data-mod="Reliability · RESILIENCE" data-title="Graceful Degradation">
+<h1>Graceful Degradation</h1>
+<p class="lead">When part of the system fails, the whole product shouldn't. Degrade a feature, keep the core alive.</p>
+<div class="plain"><b>Recommendations down</b>  → show popular items instead of erroring
+<b>Search slow</b>          → serve cached results, hide filters
+<b>Payments flaky</b>       → queue the order, confirm async</div>
+<div class="box key"><div class="bt">◆ Bulkheads + fallbacks</div><p>Isolate failures (separate pools/limits per dependency = bulkheads) so one drowning feature can't sink the ship. Give each risky call a fallback — a default value, a stale cache, or a queued retry — so a dependency being down degrades one feature instead of erroring the page.</p></div>
+<div class="box key"><div class="bt">◆ Feature flags &amp; load shedding</div><p><strong>Feature flags</strong> let you turn off an expensive or broken feature instantly, without a deploy — your emergency valve under load. <strong>Load shedding</strong> goes further: when overwhelmed, deliberately reject low-priority traffic (return 503 to background/anonymous requests) so paying users still get served. Serving 90% of users well beats serving 100% a timeout.</p></div>
+<div class="box gotcha"><div class="bt">▲ Fail static, not blank</div><p>If personalization is down, show generic popular content — not an error. A degraded page that still works keeps users and buys you time to fix the root cause. Design each feature to have a "reduced but functional" mode.</p></div>
+</section>
+
+<!-- ===================== MODULE 6 · PHP DEEP ===================== -->
+
+<section class="lesson" data-m="6" data-n="6.1" data-mod="PHP · RUNTIME" data-title="PHP Request Lifecycle & FPM">
+<h1>PHP Request Lifecycle &amp; FPM</h1>
+<div class="box problem"><div class="bt">⚡ Real problem</div>
+<p>People think PHP is "slow" or "dead." They don't know how it actually runs — and why the shared-nothing model is a strength.</p></div>
+<p class="lead">PHP's model: each request starts fresh, runs, and throws everything away. No shared memory between requests. Simple and crash-isolated.</p>
+<div class="flow"><div class="flow-row">
+<span class="node">Nginx</span><span class="arrow">→</span>
+<span class="node hl">PHP-FPM pool</span><span class="arrow">→</span>
+<span class="node">worker process</span><span class="arrow">→</span>
+<span class="node">run script</span><span class="arrow">→</span>
+<span class="node">reset</span></div>
+<div class="flow-cap">FPM keeps a pool of worker processes; each handles one request at a time, then resets.</div></div>
+<div class="plain"><b>SAPI</b>       how PHP is invoked: FPM, CLI, mod_php
+<b>FPM worker</b> a PHP process handling one request at a time
+<b>Shared-nothing</b>  request state dies at the end — no leaks across requests</div>
+<h2>Tuning the worker pool</h2>
+<div class="plain"><b>pm = static</b>    fixed N workers — predictable memory, best for dedicated boxes
+<b>pm = dynamic</b>   scale workers between min/max with load — general default
+<b>pm = ondemand</b>  spawn only on request — low-traffic / many-sites boxes
+
+max_workers ≈ available_RAM / avg_worker_memory</code></div>
+<p>If each worker uses ~60MB and you have 4GB free, ~60 workers is the ceiling. Set it higher and traffic spikes trigger the OOM killer — which takes down <em>more</em> than it saves.</p>
+<div class="box key"><div class="bt">◆ Why this matters for scaling</div><p>Concurrency = number of FPM workers. Too few → requests queue behind busy workers (latency climbs). Too many → RAM exhausted → OOM. And each worker opens DB connections, so <code>workers × servers</code> can blow past Postgres <code>max_connections</code> — put PgBouncer between them. Sizing the pool is the core PHP performance lever.</p></div>
+<div class="box gotcha"><div class="bt">▲ One slow endpoint starves the pool</div><p>If a slow report ties up workers for 10s each, they're unavailable for fast requests — the whole site feels down though CPU is idle (workers are just <em>waiting</em>). Move slow/blocking work to a queue so request workers stay free.</p></div>
+</section>
+
+<section class="lesson" data-m="6" data-n="6.2" data-mod="PHP · RUNTIME" data-title="Opcache, Memory & GC">
+<h1>Opcache, Memory &amp; GC</h1>
+<h2>Opcache</h2>
+<p>PHP compiles source to opcodes on every request — wasteful. <strong>Opcache</strong> stores the compiled opcodes in shared memory, so the compile happens once.</p>
+<div class="box key"><div class="bt">◆ Non-negotiable in production</div><p>Enabling opcache is often a 2–3× throughput win for free. <code>opcache.enable=1</code>, tune <code>memory_consumption</code> and <code>max_accelerated_files</code>.</p></div>
+<h2>Memory &amp; garbage collection</h2>
+<p>PHP uses reference counting + a cycle collector. Each request has a <code>memory_limit</code>. Because state is thrown away per request, leaks rarely accumulate — the process resets.</p>
+<h2>Preloading &amp; JIT</h2>
+<p><strong>Preloading</strong> (PHP 7.4+): load your framework's hot classes into opcache shared memory once at server start, so they're never re-read per request. <strong>JIT</strong> (PHP 8+): compile hot opcodes to machine code — a real win for CPU-bound math, but marginal for typical I/O-bound web requests (which wait on DB, not CPU).</p>
+<div class="box gotcha"><div class="bt">▲ Long-running processes flip the rules</div><p>Shared-nothing safety exists <em>because</em> FPM resets per request. Queue workers and Octane <em>don't</em> reset — so memory leaks, growing static arrays, and stale singletons <em>accumulate</em> across requests. Restart workers periodically (<code>--max-jobs=1000</code>, <code>--max-time=3600</code>) and audit for state that outlives a request.</p></div>
+</section>
+
+<section class="lesson" data-m="6" data-n="6.3" data-mod="PHP · RUNTIME" data-title="Types, Traits & Magic Methods">
+<h1>Types, Traits &amp; Magic Methods</h1>
+<div class="plain"><b>Type system</b>  gradual: <code>int</code>, <code>?string</code>, unions <code>int|string</code>, <code>readonly</code>, enums
+<b>Traits</b>       horizontal reuse — mix methods into classes (no multiple inheritance)
+<b>Interfaces</b>   contracts — the backbone of DI and polymorphism</div>
+<h2>Magic methods — how frameworks feel magic</h2>
+<pre><span class="lbl">php</span><code>__get / __set        <span class="cm">// intercept property access (Eloquent attributes)</span>
+__call / __callStatic <span class="cm">// intercept method calls (query builder, facades)</span>
+__invoke             <span class="cm">// call an object like a function (single-action controllers)</span>
+__toString           <span class="cm">// object → string</span></code></pre>
+<h2>Modern PHP worth using</h2>
+<pre><span class="lbl">php</span><code><span class="kw">enum</span> Status: <span class="kw">string</span> { <span class="kw">case</span> Active = <span class="st">'active'</span>; <span class="kw">case</span> Banned = <span class="st">'banned'</span>; }
+<span class="kw">readonly class</span> Money { <span class="kw">public function</span> __construct(<span class="kw">public int</span> $cents) {} }  <span class="cm">// immutable</span>
+<span class="kw">function</span> total(int|float $x): <span class="kw">string</span> { ... }                    <span class="cm">// union types</span>
+$name = $user?->profile?->name ?? <span class="st">'Anonymous'</span>;                    <span class="cm">// nullsafe + coalesce</span></code></pre>
+<p>Enums replace magic strings, <code>readonly</code> makes value objects truly immutable, and strict types (<code>declare(strict_types=1)</code>) turn silent coercions into errors. Modern PHP is a strongly-typed language when you opt in.</p>
+<div class="box key"><div class="bt">◆ Magic methods demystified</div><p><code>User::where(...)</code> works because <code>__callStatic</code> catches the unknown static call and forwards it to a query Builder. <code>$user->name</code> hits <code>__get</code>. A single-action controller runs via <code>__invoke</code>. The "magic" is just these interceptor hooks — powerful, but overuse hurts IDE autocompletion and readability, which is why framework code documents magic properties with <code>@property</code> annotations.</p></div>
+</section>
+
+<section class="lesson" data-m="6" data-n="6.4" data-mod="PHP · RUNTIME" data-title="Composer & Autoloading">
+<h1>Composer &amp; Autoloading</h1>
+<p class="lead">Composer manages dependencies and generates the autoloader that finds your classes without <code>require</code> everywhere.</p>
+<div class="plain"><b>PSR-4</b>       namespace → directory mapping
+<b>autoload</b>    class used → Composer includes its file on demand
+<b>vendor/</b>     installed packages
+<b>composer.lock</b> exact resolved versions — commit it</div>
+<pre><span class="lbl">json · composer.json</span><code><span class="st">"autoload"</span>: { <span class="st">"psr-4"</span>: { <span class="st">"App\\"</span>: <span class="st">"src/"</span> } }
+<span class="cm">// App\Services\OrderService → src/Services/OrderService.php</span></code></pre>
+<h2>PSR standards — why the ecosystem interoperates</h2>
+<div class="plain"><b>PSR-4</b>   autoloading (namespace → path)
+<b>PSR-12</b>  code style
+<b>PSR-7</b>   HTTP message interfaces (Request/Response)
+<b>PSR-11</b>  container interface — any framework's container, one contract
+<b>PSR-15</b>  middleware interface</div>
+<p>Because packages target these shared interfaces, a PSR-7 request or a PSR-11 container works across frameworks. That's why the PHP ecosystem composes so well — Composer plus PSRs.</p>
+<div class="box tip"><div class="bt">◆ Production optimize</div><p><code>composer install --no-dev --optimize-autoloader</code> builds a static classmap — no per-class filesystem lookup. Combine with opcache preloading for the fastest cold requests. Commit <code>composer.lock</code> so every environment resolves identical versions.</p></div>
+</section>
+
+<section class="lesson" data-m="6" data-n="6.5" data-mod="PHP · RUNTIME" data-title="Concurrency in PHP">
+<h1>Concurrency in PHP</h1>
+<div class="box problem"><div class="bt">⚡ Real problem</div>
+<p>"PHP can't do concurrency" — half-true, and worth understanding precisely.</p></div>
+<p class="lead">Classic PHP is synchronous and single-threaded per request. Concurrency comes from running <em>many processes</em> (FPM workers), not threads inside one.</p>
+<div class="plain"><b>Process model</b>   N FPM workers = N concurrent requests (the normal way)
+<b>Async runtimes</b>  Swoole / Octane / ReactPHP — event loop, coroutines, persistent state
+<b>Parallel</b>        real threads via ext-parallel (rare)</div>
+<h2>Concurrency <em>within</em> one request</h2>
+<p>Even classic PHP can overlap I/O. Need 3 independent HTTP calls? Fire them concurrently instead of one-after-another.</p>
+<pre><span class="lbl">php · Guzzle concurrent requests</span><code>$responses = Http::pool(<span class="kw">fn</span>($pool) => [
+    $pool->get(<span class="st">'https://a.com'</span>),
+    $pool->get(<span class="st">'https://b.com'</span>),
+    $pool->get(<span class="st">'https://c.com'</span>),
+]);   <span class="cm">// ~1× the slowest call, not the sum of all three</span></code></pre>
+<p>PHP 8.1 <strong>Fibers</strong> add cooperative multitasking primitives — the foundation async libraries (ReactPHP, Amp) build on.</p>
+<div class="box key"><div class="bt">◆ The shift with Octane / Swoole</div><p>They keep the app booted in memory across requests (no per-request bootstrap = big latency win) and add an event loop for true async. The cost: you lose shared-nothing safety — leaked globals, stale singletons, and request state on long-lived objects become real bugs. It's more speed for more discipline.</p></div>
+</section>
+
+<!-- ===================== MODULE 7 · LARAVEL DEEP ===================== -->
+
+<section class="lesson" data-m="7" data-n="7.1" data-mod="Laravel · INTERNALS" data-title="Container & Providers">
+<h1>Service Container &amp; Providers</h1>
+<p class="lead">The container is Laravel's core: an object factory that resolves classes and their dependencies via reflection.</p>
+<pre><span class="lbl">php</span><code>$app->bind(PaymentGateway::class, StripeGateway::class);   <span class="cm">// interface → impl</span>
+$app->singleton(Clock::class, fn() => <span class="kw">new</span> SystemClock());  <span class="cm">// build once</span>
+
+<span class="cm">// type-hint anywhere → resolved + injected automatically</span>
+<span class="kw">public function</span> __construct(<span class="kw">private</span> PaymentGateway $gateway) {}</code></pre>
+<div class="plain"><b>bind</b>       new instance each resolve
+<b>singleton</b>  one shared instance
+<b>contextual</b> "class A gets S3, class B gets local"
+<b>register()</b> providers bind here · <b>boot()</b> providers use services here</div>
+<div class="box gotcha"><div class="bt">▲ singleton state under Octane</div><p>Under normal PHP a singleton lives one request, so holding a little state is harmless. Under Octane the singleton persists across requests — stashing the current user or request on it leaks one user's data into the next. Bind request-scoped things with <code>scoped()</code>, not <code>singleton()</code>.</p></div>
+<div class="box key"><div class="bt">◆ Why it's the heart</div><p>It makes Dependency Inversion cheap: depend on interfaces, swap implementations (real ↔ fake, Stripe ↔ PayPal) with one binding. Every Laravel subsystem — router, Eloquent, cache, queue, mail — is resolved through it. Master the container and the whole framework becomes legible.</p></div>
+</section>
+
+<section class="lesson" data-m="7" data-n="7.2" data-mod="Laravel · INTERNALS" data-title="Request Lifecycle">
+<h1>Laravel Request Lifecycle</h1>
+<div class="flow"><div class="flow-col" style="align-items:center">
+<span class="node">public/index.php</span>
+<span class="arrow">↓ bootstrap/app.php — build the Application (container)</span>
+<span class="arrow">↓ Http/Kernel::handle()</span>
+<span class="arrow">↓ global + route middleware (Pipeline)</span>
+<span class="arrow">↓ Router::dispatch — match route</span>
+<span class="node hl">Controller (resolved from container)</span>
+<span class="arrow">↑ Response back up through middleware → Browser</span>
+</div></div>
+<div class="box key"><div class="bt">◆ Middleware = Pipeline = onion</div><p>Laravel's <code>Pipeline</code> wraps each middleware around the next as nested closures. Auth, throttle, CSRF, CORS all live here. It's the Chain of Responsibility pattern — each layer handles the request or passes it on, and can act on the way out too.</p></div>
+<div class="box gotcha"><div class="bt">▲ Bootstrap cost &amp; caching</div><p>Every request boots the framework: load env, merge config, register all providers. In production, cache it — <code>config:cache</code>, <code>route:cache</code>, <code>event:cache</code>, and <code>optimize</code> — to skip that work. Forget these and each request pays the full bootstrap tax. (But <code>config:cache</code> means <code>env()</code> returns null outside config files — a classic gotcha.)</p></div>
+<div class="box key"><div class="bt">◆ Terminable middleware</div><p>Middleware with a <code>terminate()</code> method runs <em>after</em> the response is sent to the browser — perfect for logging or session writes that shouldn't delay the user. It's how Laravel does "respond now, clean up after."</p></div>
+</section>
+
+<section class="lesson" data-m="7" data-n="7.3" data-mod="Laravel · INTERNALS" data-title="Eloquent & N+1">
+<h1>Eloquent &amp; the N+1 Problem</h1>
+<p class="lead">Active Record ORM. The magic is <code>__callStatic</code> forwarding to a query Builder that compiles SQL lazily.</p>
+<pre><span class="lbl">php</span><code><span class="cm">// ❌ N+1: 1 + 100 queries</span>
+<span class="kw">foreach</span> (Post::all() <span class="kw">as</span> $p) <span class="kw">echo</span> $p->author->name;
+<span class="cm">// ✅ eager load: 2 queries total</span>
+Post::with(<span class="st">'author'</span>)->get();</code></pre>
+<h2>Memory: stream large result sets</h2>
+<p><code>Post::all()</code> on a million rows hydrates a million objects into RAM and OOMs the worker. Stream instead:</p>
+<pre><span class="lbl">php</span><code>Order::query()->lazy()->each(<span class="kw">fn</span>($o) => process($o));  <span class="cm">// generator, low memory</span>
+Order::chunk(<span class="st">1000</span>, <span class="kw">fn</span>($rows) => ...);                <span class="cm">// 1000 at a time</span>
+Order::toBase()->get();                               <span class="cm">// plain rows, no model hydration</span></code></pre>
+<div class="box gotcha"><div class="bt">▲ Catch N+1 before it ships</div><p><code>Model::preventLazyLoading(!app()->isProduction())</code> in <code>AppServiceProvider::boot()</code> throws when a relation lazy-loads — a silent 200-query page becomes a loud dev exception. Pair with Debugbar/Telescope. This one line stops the most common Laravel performance bug from ever reaching production.</p></div>
+<div class="box tip"><div class="bt">◆ Other Eloquent perf tools</div><p><code>withCount('comments')</code> instead of loading and counting; <code>select()</code> only needed columns; <code>cursor()</code> for read-only streaming; database-level <code>chunkById</code> for safe batch updates. Most "Eloquent is slow" is really "loading too much."</p></div>
+</section>
+
+<section class="lesson" data-m="7" data-n="7.4" data-mod="Laravel · INTERNALS" data-title="Queues & Horizon">
+<h1>Queues &amp; Horizon</h1>
+<p class="lead">Push slow work to the background; a worker runs it. Redis is the usual driver.</p>
+<pre><span class="lbl">php</span><code>SendInvoice::dispatch($order)->onQueue(<span class="st">'emails'</span>);
+GenerateReport::dispatch($id)->delay(now()->addMinutes(<span class="st">5</span>));
+Bus::chain([<span class="kw">new</span> A, <span class="kw">new</span> B, <span class="kw">new</span> C])->dispatch(); <span class="cm">// sequential</span></code></pre>
+<div class="plain"><b>Worker</b>     php artisan queue:work (long-running process)
+<b>Horizon</b>    dashboard + config for Redis queues: throughput, failures, retries
+<b>Supervisor</b> keeps workers alive; restart on deploy</div>
+<h2>Failures &amp; reliability</h2>
+<div class="plain"><b>tries / backoff</b>   public int $tries = 3; retry with growing delay
+<b>failed()</b>          hook runs when a job exhausts retries (alert, compensate)
+<b>failed_jobs table</b>  every dead job recorded → inspect + <code>queue:retry</code>
+<b>timeout</b>            kill a job that hangs, so it doesn't block the worker forever</div>
+<pre><span class="lbl">php</span><code><span class="kw">class</span> ChargeCard <span class="kw">implements</span> ShouldQueue {
+    <span class="kw">public int</span> $tries = <span class="st">3</span>;
+    <span class="kw">public int</span> $timeout = <span class="st">30</span>;
+    <span class="kw">public function</span> failed(\Throwable $e) { <span class="cm">/* alert + compensate */</span> }
+}</code></pre>
+<div class="box gotcha"><div class="bt">▲ Workers hold stale code — restart on deploy</div><p>A long-running worker keeps the old code in memory after you deploy. Run <code>queue:restart</code> in your deploy script so workers gracefully finish the current job and reload. Under Supervisor, workers that crash are auto-restarted — <strong>Horizon</strong> manages all of this (auto-scaling worker counts, metrics, failure dashboard) and is the standard for Redis queues.</p></div>
+</section>
+
+<section class="lesson" data-m="7" data-n="7.5" data-mod="Laravel · INTERNALS" data-title="Cache, Redis & Broadcasting">
+<h1>Cache, Redis &amp; Broadcasting</h1>
+<h2>Cache</h2>
+<pre><span class="lbl">php</span><code>$v = Cache::remember(<span class="st">'popular'</span>, <span class="st">60</span>, fn() => Book::popular()->get());
+Cache::forget(<span class="st">'popular'</span>); <span class="cm">// invalidate on write</span>
+Cache::tags([<span class="st">'books'</span>])->flush(); <span class="cm">// group invalidation (Redis)</span></code></pre>
+<h2>Broadcasting (real-time)</h2>
+<p>Laravel pushes server events to clients over WebSockets — <strong>Reverb</strong> (first-party server) or Pusher, with a Redis backplane to fan out across app servers.</p>
+<div class="flow"><div class="flow-row">
+<span class="node">Event</span><span class="arrow">→</span>
+<span class="node hl">Reverb / Pusher</span><span class="arrow">→</span>
+<span class="node">Browser (Echo)</span></div>
+<div class="flow-cap">broadcast(new MessageSent($msg)) → clients update live.</div></div>
+<h2>Atomic locks — prevent double-processing across servers</h2>
+<p>Two servers, a scheduled task running on both, or two requests racing — you need "only one may do this at a time." Redis-backed atomic locks give you a cross-server mutex.</p>
+<pre><span class="lbl">php</span><code>Cache::lock(<span class="st">'process-order:'</span>.$id, <span class="st">10</span>)->get(<span class="kw">function</span> () {
+    <span class="cm">// only one process across the whole fleet runs this block</span>
+});</code></pre>
+<div class="box gotcha"><div class="bt">▲ Cache tags need a real store</div><p><code>Cache::tags(['books'])->flush()</code> lets you invalidate a group of keys at once — but tags only work on Redis/Memcached, not the file or database cache driver. Pick a tag-capable store before you design around tags.</p></div>
+</section>
+
+<section class="lesson" data-m="7" data-n="7.6" data-mod="Laravel · INTERNALS" data-title="Octane & Performance">
+<h1>Octane &amp; Performance</h1>
+<p class="lead">Octane boots Laravel once and keeps it in memory (Swoole/FrankenPHP), serving requests from the warm app — no per-request bootstrap.</p>
+<div class="plain"><b>Normal PHP</b>   boot framework → handle request → throw away (every request)
+<b>Octane</b>       boot once → handle many requests from memory (much faster)</div>
+<div class="box gotcha"><div class="bt">▲ Shared-nothing is gone</div><p>Static properties, singletons holding request data, and container state now persist between requests. Leaked state = cross-request bugs. Audit for globals; reset per-request state.</p></div>
+<h2>The performance checklist</h2>
+<div class="plain">opcache on · route/config/view cache · eager-load (kill N+1)
+Redis cache + sessions · queue slow work · DB indexes + read replicas
+CDN for assets · PgBouncer for connections · Octane when you need more</div>
+<div class="box gotcha"><div class="bt">▲ The Octane discipline checklist</div><p>Before enabling Octane, audit for cross-request leaks: no request/user data on singletons, reset static properties, don't hold DB results in globals, and use <code>scoped()</code> bindings for per-request services. Octane's speed comes from <em>not</em> resetting — which is exactly what makes leaked state dangerous.</p></div>
+<div class="box key"><div class="bt">◆ Full circle — the whole book in one idea</div><p>Every system-design lever in Modules 1–5 has a Laravel knob in Modules 6–7: scaling → stateless sessions in Redis; caching → <code>Cache::remember</code>; async → queues + Horizon; consistency → read/write connections; real-time → broadcasting + Reverb; reliability → timeouts, retries, health checks. Concepts first, then where to turn them in real code. That's what separates someone who <em>configures</em> Laravel from someone who <em>designs systems</em> with it.</p></div>
+</section>
+
+<!-- ===================== MODULE 8 · PRACTICE: URL SHORTENER ===================== -->
+
+<section class="lesson" data-m="8" data-n="8.1" data-mod="Practice · URL SHORTENER" data-title="Requirements & Estimation">
+<h1>Requirements &amp; Estimation</h1>
+<div class="box problem"><div class="bt">⚡ The interview prompt</div>
+<p>"Design a URL shortening service like bit.ly." — Before you draw a single box, pin down <em>what</em> the system does and <em>how much</em> it handles. Every design decision flows from these numbers.</p></div>
+
+<h2>Functional requirements</h2>
+<div class="plain"><b>Core</b>
+1. Given a long URL → return a short URL (e.g. short.ly/abc123)
+2. Given a short URL → redirect to the original (301/302)
+3. Short links expire after a configurable TTL (default: 5 years)
+4. Custom aliases: user may pick their own short code
+
+<b>Nice to have</b>
+5. Analytics: click count, referrer, geo, device
+6. Rate limiting per user/IP
+7. API access with auth tokens</div>
+
+<h2>Non-functional requirements</h2>
+<div class="plain"><b>Availability</b>   very high — a redirect that's down = every short link on the internet is broken
+<b>Latency</b>       redirect must be fast (&lt; 50ms p99) — user is waiting for a page load
+<b>Read-heavy</b>    100:1 read-to-write ratio — people click links far more than they create them
+<b>Durability</b>    once created, a link must work until it expires — no silent data loss</div>
+
+<h2>Back-of-envelope estimation</h2>
+<div class="plain"><b>Writes</b>   100M new URLs / month ≈ ~40 URLs/sec
+<b>Reads</b>   100:1 ratio → 10B redirects / month ≈ ~4,000 reads/sec
+<b>Storage</b>  each record ~500 bytes (URL + metadata)
+          100M × 500B × 12 months × 5 years ≈ <b>3 TB</b> total
+<b>Cache</b>    80/20 rule — 20% of URLs get 80% of traffic
+          20% of daily URLs in cache → manageable in Redis</div>
+
+<div class="box key"><div class="bt">◆ Why estimation matters</div><p>These numbers tell you: a single Postgres can handle 40 writes/sec easily. 4,000 reads/sec needs a cache layer. 3TB is big but not sharding-mandatory. Start simple, scale where the numbers demand.</p></div>
+
+<div class="box tip"><div class="bt">◆ Interview tip</div><p>Always state your assumptions out loud: "I'll assume 100M new URLs per month" — the interviewer will correct you if they want different numbers. The process of estimation matters more than exact figures.</p></div>
+</section>
+
+<section class="lesson" data-m="8" data-n="8.2" data-mod="Practice · URL SHORTENER" data-title="API Design">
+<h1>API Design</h1>
+<p class="lead">Three endpoints. That's the whole system from the outside.</p>
+
+<h2>Create short URL</h2>
+<pre><span class="lbl">http</span><code><span class="kw">POST</span> /api/v1/urls
+Authorization: Bearer {token}
+
+{
+  <span class="st">"long_url"</span>: <span class="st">"https://example.com/very/long/path?query=1"</span>,
+  <span class="st">"custom_alias"</span>: <span class="st">"my-link"</span>,      <span class="cm">// optional</span>
+  <span class="st">"expires_at"</span>: <span class="st">"2031-09-22"</span>     <span class="cm">// optional, default 5y</span>
+}
+
+<span class="cm">// Response 201</span>
+{
+  <span class="st">"short_url"</span>: <span class="st">"https://short.ly/abc123"</span>,
+  <span class="st">"long_url"</span>: <span class="st">"https://example.com/very/long/path?query=1"</span>,
+  <span class="st">"code"</span>: <span class="st">"abc123"</span>,
+  <span class="st">"expires_at"</span>: <span class="st">"2031-09-22T00:00:00Z"</span>,
+  <span class="st">"created_at"</span>: <span class="st">"2026-09-22T12:00:00Z"</span>
+}</code></pre>
+
+<h2>Redirect (the hot path)</h2>
+<pre><span class="lbl">http</span><code><span class="kw">GET</span> /{code}
+
+<span class="cm">// Response 301 (permanent) or 302 (temporary)</span>
+Location: https://example.com/very/long/path?query=1</code></pre>
+
+<div class="box gotcha"><div class="bt">▲ 301 vs 302 — it matters</div><p><strong>301 Moved Permanently</strong> — browser caches the redirect. Faster for users, but you lose analytics on repeat visits because the browser never hits your server again. <strong>302 Found</strong> — browser always asks your server. Slower, but you track every click. Most shorteners use 302 for analytics, or 301 with a tracking pixel.</p></div>
+
+<h2>Get analytics</h2>
+<pre><span class="lbl">http</span><code><span class="kw">GET</span> /api/v1/urls/{code}/stats
+Authorization: Bearer {token}
+
+<span class="cm">// Response 200</span>
+{
+  <span class="st">"code"</span>: <span class="st">"abc123"</span>,
+  <span class="st">"total_clicks"</span>: 14523,
+  <span class="st">"unique_visitors"</span>: 8921,
+  <span class="st">"clicks_by_day"</span>: [ {<span class="st">"date"</span>: <span class="st">"2026-09-22"</span>, <span class="st">"clicks"</span>: 342} ],
+  <span class="st">"top_referrers"</span>: [ {<span class="st">"domain"</span>: <span class="st">"twitter.com"</span>, <span class="st">"clicks"</span>: 5210} ],
+  <span class="st">"top_countries"</span>: [ {<span class="st">"country"</span>: <span class="st">"UZ"</span>, <span class="st">"clicks"</span>: 3100} ]
+}</code></pre>
+
+<h2>Delete / expire</h2>
+<pre><span class="lbl">http</span><code><span class="kw">DELETE</span> /api/v1/urls/{code}
+Authorization: Bearer {token}
+
+<span class="cm">// Response 204 No Content</span></code></pre>
+
+<div class="box key"><div class="bt">◆ API design principles at play</div><p>Versioned (<code>/v1/</code>). RESTful nouns, not verbs. Auth on write endpoints. The redirect endpoint is bare (<code>/{code}</code>) because that's the whole point — shortest possible URL. Idempotent where possible.</p></div>
+</section>
+
+<section class="lesson" data-m="8" data-n="8.3" data-mod="Practice · URL SHORTENER" data-title="Key Generation — The Core Algorithm">
+<h1>Key Generation — The Core Algorithm</h1>
+<div class="box problem"><div class="bt">⚡ The hard problem</div>
+<p>How do you generate a unique 6–7 character code for each URL? It must be unique, unguessable, and fast to generate at scale. This is the heart of the system.</p></div>
+
+<h2>Option 1: Hash + truncate</h2>
+<div class="plain"><b>How</b>    MD5/SHA256 the long URL → take first 7 characters → base62 encode
+<b>Pro</b>    same URL always gives same hash → natural dedup
+<b>Con</b>    collisions — two different URLs can hash to the same 7 chars
+<b>Fix</b>    on collision, append a counter and re-hash, or probe next slot</div>
+
+<pre><span class="lbl">php</span><code><span class="cm">// hash approach</span>
+$hash = md5($longUrl);                <span class="cm">// 32 hex chars</span>
+$code = substr(base_convert($hash, 16, 36), 0, 7);</code></pre>
+
+<div class="box gotcha"><div class="bt">▲ Hash collision is a real problem</div><p>With 7 chars of base62, you have 62⁷ ≈ 3.5 trillion combinations. But by the birthday paradox, collisions start appearing around √(3.5T) ≈ 1.87M URLs. You <strong>must</strong> check for collisions and handle them — either retry with a salt or use a different approach entirely.</p></div>
+
+<h2>Option 2: Counter-based (auto-increment)</h2>
+<div class="plain"><b>How</b>    auto-increment ID (1, 2, 3...) → base62 encode
+<b>Pro</b>    zero collisions, simple
+<b>Con</b>    predictable — user can guess next URL (security risk)
+          single point of failure if one DB generates IDs
+<b>Fix</b>    add random padding, or use a distributed counter</div>
+
+<pre><span class="lbl">php</span><code><span class="cm">// counter approach</span>
+<span class="kw">function</span> toBase62(int $num): string {
+    $chars = <span class="st">'0123456789abcdefghijklmnopqrstuvwxyzABCDEFGHIJKLMNOPQRSTUVWXYZ'</span>;
+    $result = <span class="st">''</span>;
+    <span class="kw">while</span> ($num > 0) {
+        $result = $chars[$num % 62] . $result;
+        $num = intdiv($num, 62);
+    }
+    <span class="kw">return</span> $result ?: <span class="st">'0'</span>;
+}
+<span class="cm">// toBase62(1000000) → "4c92"</span></code></pre>
+
+<h2>Option 3: Pre-generated key pool (KGS) ★</h2>
+<div class="plain"><b>How</b>    a Key Generation Service pre-generates millions of unique random codes
+        stores them in a DB table with two columns: key, used (boolean)
+        on create-request → grab next unused key, mark it used
+<b>Pro</b>    no collision checks at write time — keys are guaranteed unique
+        no predictability — keys are random
+        scales horizontally — multiple servers can grab keys from the pool
+<b>Con</b>    need to manage the key pool — refill when running low
+        if a server grabs a key and crashes, that key is "wasted" (acceptable)</div>
+
+<div class="flow"><div class="flow-row">
+<span class="node">KGS daemon</span><span class="arrow">→</span>
+<span class="node hl">key_pool table</span><span class="arrow">→</span>
+<span class="node">App grabs batch</span><span class="arrow">→</span>
+<span class="node">Assign to URL</span></div>
+<div class="flow-cap">Keys are pre-generated in background. App servers grab batches (e.g. 1000 at a time) into local memory.</div></div>
+
+<pre><span class="lbl">sql</span><code><span class="cm">-- Key pool table</span>
+<span class="kw">CREATE TABLE</span> key_pool (
+    code     <span class="kw">CHAR</span>(7) <span class="kw">PRIMARY KEY</span>,
+    used     <span class="kw">BOOLEAN DEFAULT FALSE</span>,
+    used_at  <span class="kw">TIMESTAMP NULL</span>
+);
+
+<span class="cm">-- Grab a batch atomically</span>
+<span class="kw">UPDATE</span> key_pool <span class="kw">SET</span> used = <span class="kw">TRUE</span>, used_at = NOW()
+<span class="kw">WHERE</span> code <span class="kw">IN</span> (
+    <span class="kw">SELECT</span> code <span class="kw">FROM</span> key_pool <span class="kw">WHERE</span> used = <span class="kw">FALSE</span> <span class="kw">LIMIT</span> 1000
+    <span class="kw">FOR UPDATE SKIP LOCKED</span>
+)
+<span class="kw">RETURNING</span> code;</code></pre>
+
+<div class="box key"><div class="bt">◆ KGS is the go-to answer in interviews</div><p>It separates key uniqueness from the write path. No race conditions on the hot path. Pre-generation is a background job. And <code>FOR UPDATE SKIP LOCKED</code> lets multiple app servers grab keys concurrently without blocking each other — this is a real PostgreSQL feature you should know.</p></div>
+
+<h2>Base62 math</h2>
+<div class="plain"><b>Base62</b>  [0-9a-zA-Z] = 62 characters
+<b>6 chars</b>  62⁶ = 56.8 billion combinations
+<b>7 chars</b>  62⁷ = 3.5 trillion combinations
+<b>At 100M URLs/month:</b>
+  6 chars last ~47 years
+  7 chars last ~2,900 years
+
+6 characters is enough. 7 gives room to breathe.</div>
+</section>
+
+<section class="lesson" data-m="8" data-n="8.4" data-mod="Practice · URL SHORTENER" data-title="Database Schema & Storage">
+<h1>Database Schema &amp; Storage</h1>
+<p class="lead">Two tables run the whole system. One for URLs, one for analytics events.</p>
+
+<h2>Core schema</h2>
+<pre><span class="lbl">sql</span><code><span class="kw">CREATE TABLE</span> urls (
+    code        <span class="kw">CHAR</span>(7)      <span class="kw">PRIMARY KEY</span>,
+    long_url    <span class="kw">TEXT</span>         <span class="kw">NOT NULL</span>,
+    user_id     <span class="kw">BIGINT</span>       <span class="kw">NULL</span>,        <span class="cm">-- nullable for anonymous</span>
+    created_at  <span class="kw">TIMESTAMP</span>    <span class="kw">NOT NULL DEFAULT NOW()</span>,
+    expires_at  <span class="kw">TIMESTAMP</span>    <span class="kw">NOT NULL</span>,
+    click_count <span class="kw">BIGINT</span>       <span class="kw">NOT NULL DEFAULT 0</span>
+);
+
+<span class="cm">-- For looking up by long URL (dedup check)</span>
+<span class="kw">CREATE INDEX</span> idx_urls_long ON urls (long_url) <span class="kw">USING</span> hash;
+
+<span class="cm">-- For expiry cleanup</span>
+<span class="kw">CREATE INDEX</span> idx_urls_expires ON urls (expires_at) <span class="kw">WHERE</span> expires_at IS NOT NULL;</code></pre>
+
+<div class="box tip"><div class="bt">◆ Why code is the PK, not an auto-increment ID</div><p>The short code <em>is</em> the lookup key. Every redirect query is <code>WHERE code = ?</code>. Making it the primary key means the lookup is a single clustered-index scan — no secondary index hop. One disk seek for the hottest query in the system.</p></div>
+
+<h2>Analytics events table</h2>
+<pre><span class="lbl">sql</span><code><span class="kw">CREATE TABLE</span> clicks (
+    id          <span class="kw">BIGSERIAL PRIMARY KEY</span>,
+    code        <span class="kw">CHAR</span>(7)      <span class="kw">NOT NULL</span>,
+    clicked_at  <span class="kw">TIMESTAMP</span>    <span class="kw">NOT NULL DEFAULT NOW()</span>,
+    ip          <span class="kw">INET</span>,
+    country     <span class="kw">CHAR</span>(2),
+    referrer    <span class="kw">VARCHAR</span>(500),
+    user_agent  <span class="kw">VARCHAR</span>(500)
+);
+
+<span class="cm">-- For per-URL stats</span>
+<span class="kw">CREATE INDEX</span> idx_clicks_code ON clicks (code, clicked_at);</code></pre>
+
+<div class="box gotcha"><div class="bt">▲ Clicks table grows fast — plan for it</div><p>At 10B clicks/month, this table grows by ~120B rows/year. Options: (1) partition by month — <code>PARTITION BY RANGE (clicked_at)</code>, drop old partitions. (2) Move to a time-series DB (TimescaleDB, ClickHouse). (3) Write clicks to Kafka first, aggregate in batch, store only summaries in Postgres.</p></div>
+
+<h2>SQL vs NoSQL — what fits here?</h2>
+<div class="plain"><b>URLs table</b>     simple key→value lookup, fits both SQL and NoSQL
+                 SQL: strong consistency, ACID, easy joins for user dashboard
+                 NoSQL (DynamoDB): insane read throughput, auto-sharding by code
+
+<b>Clicks table</b>   append-only, time-series data
+                 PostgreSQL + partitioning works until ~1B rows
+                 Beyond that: ClickHouse or TimescaleDB
+
+<b>Verdict</b>        start with PostgreSQL for everything.
+                 Move clicks to a columnar store when volume demands it.</div>
+
+<div class="box key"><div class="bt">◆ Schema reflects the access pattern</div><p>URL lookups are by <code>code</code> (PK scan). Click inserts are append-only (fast). Click reads are by <code>code + time range</code> (composite index). Hash index on <code>long_url</code> for dedup. Every index serves exactly one query pattern — no wasted indexes.</p></div>
+</section>
+
+<section class="lesson" data-m="8" data-n="8.5" data-mod="Practice · URL SHORTENER" data-title="Read & Write Flow">
+<h1>Read &amp; Write Flow</h1>
+<p class="lead">Two flows. Write is rare (40/sec). Read is everything (4,000/sec). Optimize accordingly.</p>
+
+<h2>Write flow: creating a short URL</h2>
+<div class="flow"><div class="flow-row">
+<span class="node">Client POST</span><span class="arrow">→</span>
+<span class="node">Rate limit check</span><span class="arrow">→</span>
+<span class="node hl">Grab key from pool</span><span class="arrow">→</span>
+<span class="node">Insert URL row</span><span class="arrow">→</span>
+<span class="node">Return short URL</span></div>
+<div class="flow-cap">Write path: validate → get unique code → store → respond. ~40 writes/sec — Postgres handles this trivially.</div></div>
+
+<pre><span class="lbl">php — write flow</span><code><span class="kw">public function</span> create(StoreUrlRequest $request): JsonResponse
+{
+    <span class="cm">// 1. Check if this URL was already shortened (dedup)</span>
+    $existing = Url::where(<span class="st">'long_url'</span>, $request->long_url)
+                   ->where(<span class="st">'user_id'</span>, $request->user()?->id)
+                   ->first();
+
+    <span class="kw">if</span> ($existing) {
+        <span class="kw">return</span> response()->json($existing, 200);
+    }
+
+    <span class="cm">// 2. Grab a pre-generated key</span>
+    $code = $this->keyPool->take();
+
+    <span class="cm">// 3. Insert</span>
+    $url = Url::create([
+        <span class="st">'code'</span>      => $code,
+        <span class="st">'long_url'</span>  => $request->long_url,
+        <span class="st">'user_id'</span>   => $request->user()?->id,
+        <span class="st">'expires_at'</span> => $request->expires_at ?? now()->addYears(5),
+    ]);
+
+    <span class="cm">// 4. Warm the cache</span>
+    Cache::put(<span class="st">"url:{$code}"</span>, $url->long_url, $url->expires_at);
+
+    <span class="kw">return</span> response()->json($url, 201);
+}</code></pre>
+
+<h2>Read flow: redirecting</h2>
+<div class="flow"><div class="flow-row">
+<span class="node">GET /abc123</span><span class="arrow">→</span>
+<span class="node hl">Cache lookup</span><span class="arrow">→</span>
+<span class="node">Hit? Redirect</span></div>
+<div class="flow-row" style="margin-top:8px">
+<span class="node">Cache miss</span><span class="arrow">→</span>
+<span class="node">DB lookup</span><span class="arrow">→</span>
+<span class="node">Fill cache</span><span class="arrow">→</span>
+<span class="node">Redirect</span></div>
+<div class="flow-cap">Read path: cache first → DB fallback → warm cache → redirect. Target: &lt;10ms for cache hit.</div></div>
+
+<pre><span class="lbl">php — read flow</span><code><span class="kw">public function</span> redirect(string $code): RedirectResponse
+{
+    <span class="cm">// 1. Cache first</span>
+    $longUrl = Cache::get(<span class="st">"url:{$code}"</span>);
+
+    <span class="kw">if</span> (!$longUrl) {
+        <span class="cm">// 2. DB fallback</span>
+        $url = Url::where(<span class="st">'code'</span>, $code)
+                  ->where(<span class="st">'expires_at'</span>, <span class="st">'>'</span>, now())
+                  ->first();
+
+        <span class="kw">if</span> (!$url) {
+            <span class="kw">abort</span>(404);
+        }
+
+        $longUrl = $url->long_url;
+
+        <span class="cm">// 3. Warm cache for next hit</span>
+        Cache::put(<span class="st">"url:{$code}"</span>, $longUrl, $url->expires_at);
+    }
+
+    <span class="cm">// 4. Track click asynchronously (don't slow down redirect)</span>
+    TrackClick::dispatch($code, request());
+
+    <span class="kw">return</span> redirect($longUrl, 302);
+}</code></pre>
+
+<div class="box key"><div class="bt">◆ The critical insight: async analytics</div><p>Never make the user wait for analytics to be written. The redirect returns immediately. The click event goes to a queue (Redis/SQS) and a worker writes it to the clicks table in the background. User sees &lt;10ms redirect; analytics arrive seconds later. Acceptable trade-off.</p></div>
+
+<div class="box gotcha"><div class="bt">▲ Cache stampede on popular links</div><p>If a viral link's cache entry expires, thousands of concurrent requests all miss the cache and hit the DB simultaneously. Solutions: (1) Use <code>Cache::lock()</code> — only one request rebuilds the cache, others wait. (2) Set cache TTL to be much longer than link TTL and check expiry in app logic. (3) Warm cache proactively for high-traffic links.</p></div>
+</section>
+
+<section class="lesson" data-m="8" data-n="8.6" data-mod="Practice · URL SHORTENER" data-title="Caching Strategy">
+<h1>Caching Strategy</h1>
+<p class="lead">Cache makes this system fast. Without it, you're hitting the DB 4,000 times/sec for the same popular links over and over.</p>
+
+<h2>What to cache</h2>
+<div class="plain"><b>URL mapping</b>     code → long_url (the redirect lookup)
+                  key: <code>url:{code}</code>
+                  value: the long URL string
+                  TTL: match the link's expiry date
+
+<b>Click counts</b>    code → total click count
+                  key: <code>clicks:{code}</code>
+                  Redis INCR for real-time counter
+                  Flush to DB periodically (every 5 min or every 100 clicks)
+
+<b>NOT cached</b>      individual click events (they go to queue → DB)
+                  user dashboards (low traffic, always fresh from DB)</div>
+
+<h2>Cache sizing</h2>
+<div class="plain"><b>80/20 rule:</b>  20% of URLs get 80% of traffic
+<b>Daily URLs</b>  100M / 30 = ~3.3M URLs/day
+<b>Hot set</b>     20% = ~660K URLs in cache
+<b>Avg size</b>    ~300 bytes per entry (code + long URL)
+<b>Total</b>       660K × 300B ≈ <b>~200 MB</b> in Redis — trivial</div>
+
+<div class="flow"><div class="flow-row">
+<span class="node">Request</span><span class="arrow">→</span>
+<span class="node hl">Redis (200MB)</span><span class="arrow">→</span>
+<span class="node">~95% hit rate</span></div>
+<div class="flow-row" style="margin-top:8px">
+<span class="node">5% miss</span><span class="arrow">→</span>
+<span class="node">PostgreSQL</span><span class="arrow">→</span>
+<span class="node">fill Redis</span></div>
+<div class="flow-cap">With a ~95% cache hit rate, Postgres handles only ~200 reads/sec instead of 4,000.</div></div>
+
+<h2>Cache-aside pattern (what we're using)</h2>
+<pre><span class="lbl">pattern</span><code><span class="cm">Read path:</span>
+1. Check cache
+2. Miss → read DB
+3. Write result to cache
+4. Return
+
+<span class="cm">Write path:</span>
+1. Write to DB
+2. Write to cache (or invalidate cache key)
+
+<span class="cm">This is Cache-Aside (Lazy Loading).</span>
+<span class="cm">Simple, fits read-heavy workloads perfectly.</span></code></pre>
+
+<div class="box tip"><div class="bt">◆ Why not write-through?</div><p>Write-through (write to cache and DB together on every write) works here too, and we do warm the cache on create. But cache-aside is the mental model — because the real value is on the <em>read</em> path, not the write path. Most URLs are created once and read millions of times. Cache-aside naturally populates the cache with what's actually popular.</p></div>
+
+<div class="box gotcha"><div class="bt">▲ Cache invalidation on delete</div><p>When a user deletes a short URL, you must also <code>Cache::forget("url:{$code}")</code>. If you don't, deleted links keep redirecting from cache until TTL expires. Sounds obvious — gets missed in production constantly.</p></div>
+</section>
+
+<section class="lesson" data-m="8" data-n="8.7" data-mod="Practice · URL SHORTENER" data-title="Analytics & Click Tracking">
+<h1>Analytics &amp; Click Tracking</h1>
+<div class="box problem"><div class="bt">⚡ The tension</div>
+<p>You want rich analytics (every click tracked with geo, device, referrer) but you can't slow down the redirect. The redirect is the product — analytics is a feature. Never sacrifice the product for a feature.</p></div>
+
+<h2>Architecture: async event pipeline</h2>
+<div class="flow"><div class="flow-row">
+<span class="node">Redirect happens</span><span class="arrow">→</span>
+<span class="node hl">Dispatch job</span><span class="arrow">→</span>
+<span class="node">Queue (Redis)</span><span class="arrow">→</span>
+<span class="node">Worker processes</span></div>
+<div class="flow-row" style="margin-top:8px">
+<span class="node">Worker</span><span class="arrow">→</span>
+<span class="node">Parse IP → geo</span><span class="arrow">→</span>
+<span class="node">Parse UA → device</span><span class="arrow">→</span>
+<span class="node">INSERT clicks row</span></div>
+<div class="flow-cap">Click tracking is fire-and-forget from the redirect's perspective. Workers handle the heavy lifting.</div></div>
+
+<pre><span class="lbl">php — TrackClick job</span><code><span class="kw">class</span> TrackClick <span class="kw">implements</span> ShouldQueue
+{
+    <span class="kw">public function</span> __construct(
+        <span class="kw">public</span> string $code,
+        <span class="kw">public</span> string $ip,
+        <span class="kw">public</span> ?string $referrer,
+        <span class="kw">public</span> ?string $userAgent,
+    ) {}
+
+    <span class="kw">public function</span> handle(): void
+    {
+        Click::create([
+            <span class="st">'code'</span>       => $this->code,
+            <span class="st">'ip'</span>         => $this->ip,
+            <span class="st">'country'</span>    => geoip($this->ip)->country_code,
+            <span class="st">'referrer'</span>   => $this->referrer,
+            <span class="st">'user_agent'</span> => $this->userAgent,
+        ]);
+
+        <span class="cm">// Increment real-time counter in Redis</span>
+        Cache::increment(<span class="st">"clicks:{$this->code}"</span>);
+    }
+}</code></pre>
+
+<h2>Real-time counter vs accurate count</h2>
+<div class="plain"><b>Redis INCR</b>    fast, real-time, but volatile (restarts lose count)
+<b>DB count</b>     SELECT COUNT(*) from clicks WHERE code = ? — accurate but slow
+<b>Hybrid</b>       Redis for real-time display, periodic sync to urls.click_count
+               a scheduled job every 5 minutes:
+               UPDATE urls SET click_count = (SELECT COUNT(*) FROM clicks WHERE code = urls.code)</div>
+
+<div class="box tip"><div class="bt">◆ Batch inserts for high-traffic links</div><p>At 4,000 clicks/sec, inserting one row per click overwhelms Postgres. Batch: collect clicks in Redis lists (<code>RPUSH clicks:buffer {json}</code>), a worker pops batches of 500 every second and bulk-inserts them. Drops from 4,000 INSERTs/sec to 8 bulk INSERTs/sec.</p></div>
+
+<h2>Aggregation for dashboards</h2>
+<pre><span class="lbl">sql</span><code><span class="cm">-- Pre-aggregate daily stats (run via scheduled job)</span>
+<span class="kw">INSERT INTO</span> click_stats_daily (code, date, clicks, unique_ips)
+<span class="kw">SELECT</span> code,
+       clicked_at::date,
+       COUNT(*),
+       COUNT(<span class="kw">DISTINCT</span> ip)
+<span class="kw">FROM</span> clicks
+<span class="kw">WHERE</span> clicked_at >= CURRENT_DATE - INTERVAL <span class="st">'1 day'</span>
+  <span class="kw">AND</span> clicked_at < CURRENT_DATE
+<span class="kw">GROUP BY</span> code, clicked_at::date
+<span class="kw">ON CONFLICT</span> (code, date) <span class="kw">DO UPDATE SET</span>
+    clicks = EXCLUDED.clicks,
+    unique_ips = EXCLUDED.unique_ips;</code></pre>
+
+<div class="box key"><div class="bt">◆ Three-tier analytics pattern</div><p><strong>Hot</strong>: Redis counters (real-time, approximate). <strong>Warm</strong>: pre-aggregated daily stats table (fast dashboard queries). <strong>Cold</strong>: raw clicks table (drill-down, partitioned by month, oldest months moved to cold storage). This pattern works for any analytics system, not just URL shorteners.</p></div>
+</section>
+
+<section class="lesson" data-m="8" data-n="8.8" data-mod="Practice · URL SHORTENER" data-title="Rate Limiting & Security">
+<h1>Rate Limiting &amp; Security</h1>
+<p class="lead">An open URL shortener without rate limiting is a spam cannon. Lock it down.</p>
+
+<h2>Rate limiting strategy</h2>
+<div class="plain"><b>Anonymous creates</b>    10 URLs / hour / IP
+<b>Authenticated creates</b> 100 URLs / hour / user
+<b>Redirects</b>              no limit (it's the product)
+<b>API reads</b>              1,000 / hour / token
+
+<b>Algorithm</b>   sliding window counter in Redis
+             key: <code>ratelimit:{user_id}:{minute}</code>
+             INCR + EXPIRE 60</div>
+
+<pre><span class="lbl">php — Laravel rate limiting</span><code><span class="cm">// In RouteServiceProvider or route definition</span>
+Route::post(<span class="st">'/api/v1/urls'</span>, [UrlController::class, <span class="st">'create'</span>])
+    ->middleware(<span class="st">'throttle:100,60'</span>);  <span class="cm">// 100 requests per 60 minutes</span>
+
+<span class="cm">// Custom rate limiter for more control</span>
+RateLimiter::for(<span class="st">'url-create'</span>, <span class="kw">function</span> (Request $request) {
+    <span class="kw">return</span> $request->user()
+        ? Limit::perHour(100)->by($request->user()->id)
+        : Limit::perHour(10)->by($request->ip());
+});</code></pre>
+
+<h2>Security concerns</h2>
+<div class="plain"><b>Malicious URLs</b>     shortener can hide phishing/malware links
+                     → check against Google Safe Browsing API on create
+                     → scan asynchronously, flag suspicious
+
+<b>Spam / abuse</b>       bots mass-creating links
+                     → rate limiting + CAPTCHA on anonymous creates
+                     → require email verification for API tokens
+
+<b>Enumeration</b>        attacker iterates all short codes (abc000 → abc999)
+                     → random codes (not sequential) prevent this
+                     → KGS approach already solves this
+
+<b>Open redirect</b>      attacker uses your domain's trust for phishing
+                     → display interstitial "you're leaving" page for flagged URLs
+                     → report/block mechanism for users</div>
+
+<div class="box gotcha"><div class="bt">▲ Your domain's reputation is on the line</div><p>When someone shortens a phishing link through your service, the phishing email contains <em>your</em> domain. Email filters learn to flag <em>your</em> domain. Google may flag <em>your</em> domain. Abuse prevention isn't a nice-to-have — it's existential for a URL shortener.</p></div>
+
+<div class="box key"><div class="bt">◆ Laravel gives you most of this</div><p>Rate limiting: built-in throttle middleware backed by Redis. Input validation: FormRequest classes. HTTPS: enforce in <code>AppServiceProvider</code> with <code>URL::forceScheme('https')</code>. Auth: Sanctum for API tokens. You don't need to build these — you need to configure them correctly.</p></div>
+</section>
+
+<section class="lesson" data-m="8" data-n="8.9" data-mod="Practice · URL SHORTENER" data-title="Scaling & High Availability">
+<h1>Scaling &amp; High Availability</h1>
+<p class="lead">Start simple, scale where the numbers demand. Not before.</p>
+
+<h2>Stage 1: single server (handles more than you think)</h2>
+<div class="flow"><div class="flow-row">
+<span class="node">Nginx</span><span class="arrow">→</span>
+<span class="node hl">Laravel app</span><span class="arrow">→</span>
+<span class="node">PostgreSQL</span></div>
+<div class="flow-row" style="margin-top:8px">
+<span class="node">Redis (cache + queue)</span></div>
+<div class="flow-cap">One server. Handles ~1,000 req/sec with Redis caching. Enough for most startups.</div></div>
+
+<h2>Stage 2: separate concerns</h2>
+<div class="flow"><div class="flow-row">
+<span class="node">Load Balancer</span><span class="arrow">→</span>
+<span class="node">App Server 1</span></div>
+<div class="flow-row">
+<span class="node"></span><span class="arrow">→</span>
+<span class="node">App Server 2</span></div>
+<div class="flow-row" style="margin-top:8px">
+<span class="node">Redis Cluster</span><span class="arrow"> </span>
+<span class="node">Postgres Primary</span><span class="arrow">→</span>
+<span class="node">Read Replica</span></div>
+<div class="flow-cap">Multiple app servers behind LB. Redis and Postgres on dedicated machines. Read replica handles analytics queries.</div></div>
+
+<h2>Stage 3: global scale</h2>
+<div class="plain"><b>Sharding</b>       shard urls table by code's first character (a-z, 0-9)
+                 or use consistent hashing across DB nodes
+                 each shard handles ~100M URLs independently
+
+<b>CDN</b>            cache 301 redirects at the edge (CloudFlare)
+                 popular links never reach your server
+                 downside: lose analytics for cached redirects
+
+<b>Multi-region</b>   deploy app servers in US, EU, Asia
+                 DNS routes users to nearest region
+                 each region has its own Redis + read replica
+                 writes go to primary in one region
+
+<b>KGS scaling</b>    each region pre-fetches key batches from central KGS
+                 if region loses connectivity, it has local keys to survive</div>
+
+<div class="box key"><div class="bt">◆ When to move to each stage</div>
+<p><strong>Stage 1→2:</strong> when CPU or memory on single server > 70% sustained, or you need zero-downtime deploys. <strong>Stage 2→3:</strong> when latency from one region is unacceptable (>200ms for users in Asia when servers are in US), or when a single Postgres can't handle the write volume.</p></div>
+
+<h2>Database sharding by code</h2>
+<pre><span class="lbl">concept</span><code><span class="cm">// Shard routing</span>
+<span class="cm">// code "abc123" → first char 'a' → shard 0</span>
+<span class="cm">// code "x7yZ9q" → first char 'x' → shard 3</span>
+
+Shard 0: [a-g]  → DB node 1
+Shard 1: [h-n]  → DB node 2
+Shard 2: [o-u]  → DB node 3
+Shard 3: [v-z,0-9] → DB node 4
+
+<span class="cm">// Pro: redirect lookup hits exactly one shard (code is in the URL)</span>
+<span class="cm">// Pro: no cross-shard queries needed for the hot path</span>
+<span class="cm">// Con: user dashboard needs to query all shards (fan-out)</span></code></pre>
+
+<div class="box tip"><div class="bt">◆ Don't shard until you must</div><p>A single PostgreSQL with proper indexes handles millions of rows and thousands of reads/sec. Sharding adds operational complexity (migrations, backups, monitoring per shard). At 100M URLs/month, you hit sharding need after ~2-3 years with aggressive growth. Start with one DB, add read replicas, shard last.</p></div>
+
+<h2>High availability checklist</h2>
+<div class="plain"><b>App servers</b>    2+ behind load balancer, health checks, auto-scaling
+<b>PostgreSQL</b>    primary + sync standby, auto-failover (Patroni)
+<b>Redis</b>         Redis Sentinel or Cluster, auto-failover
+<b>Backups</b>       daily full + WAL archiving for point-in-time recovery
+<b>Monitoring</b>    redirect latency p99, cache hit rate, queue depth, error rate
+<b>Runbook</b>       what to do when cache is down (serve from DB, accept higher latency)
+               what to do when DB is down (read from cache, reject creates)</div>
+</section>
+
+<section class="lesson" data-m="8" data-n="8.10" data-mod="Practice · URL SHORTENER" data-title="Full Architecture Diagram">
+<h1>Full Architecture Diagram</h1>
+<p class="lead">Everything from the last 9 lessons, stitched into one system.</p>
+
+<svg class="dia" viewBox="0 0 720 520">
+  <style>
+    .dia text { font-family: var(--mono); font-size: 10px; }
+    .dia .nb { rx: 6; ry: 6; }
+  </style>
+
+  <!-- Client -->
+  <rect class="nb" x="10" y="230" width="80" height="36"/>
+  <text class="nt" x="50" y="253" text-anchor="middle">Client</text>
+
+  <!-- LB -->
+  <rect class="nb hl" x="130" y="230" width="90" height="36"/>
+  <text class="nt" x="175" y="253" text-anchor="middle">Load Balancer</text>
+
+  <!-- App Servers -->
+  <rect class="nb" x="260" y="200" width="90" height="36"/>
+  <text class="nt" x="305" y="223" text-anchor="middle">App Server 1</text>
+  <rect class="nb" x="260" y="260" width="90" height="36"/>
+  <text class="nt" x="305" y="283" text-anchor="middle">App Server 2</text>
+
+  <!-- Redis -->
+  <rect class="nb hl" x="420" y="140" width="80" height="36"/>
+  <text class="nt" x="460" y="163" text-anchor="middle">Redis</text>
+  <text class="dia text" x="460" y="130" text-anchor="middle" style="font-size:8px">cache + queue</text>
+
+  <!-- Postgres Primary -->
+  <rect class="nb" x="420" y="230" width="100" height="36"/>
+  <text class="nt" x="470" y="253" text-anchor="middle">Postgres Primary</text>
+
+  <!-- Postgres Replica -->
+  <rect class="nb" x="420" y="310" width="100" height="36"/>
+  <text class="nt" x="470" y="333" text-anchor="middle">Read Replica</text>
+
+  <!-- Queue Worker -->
+  <rect class="nb" x="580" y="140" width="100" height="36"/>
+  <text class="nt" x="630" y="163" text-anchor="middle">Queue Workers</text>
+  <text class="dia text" x="630" y="130" text-anchor="middle" style="font-size:8px">click tracking</text>
+
+  <!-- KGS -->
+  <rect class="nb hl" x="580" y="230" width="100" height="36"/>
+  <text class="nt" x="630" y="253" text-anchor="middle">KGS Daemon</text>
+  <text class="dia text" x="630" y="220" text-anchor="middle" style="font-size:8px">pre-gen keys</text>
+
+  <!-- Key Pool -->
+  <rect class="nb" x="580" y="310" width="100" height="36"/>
+  <text class="nt" x="630" y="333" text-anchor="middle">Key Pool Table</text>
+
+  <!-- CDN -->
+  <rect class="nb" x="10" y="30" width="80" height="36"/>
+  <text class="nt" x="50" y="53" text-anchor="middle">CDN Edge</text>
+  <text class="dia text" x="50" y="20" text-anchor="middle" style="font-size:8px">301 cache</text>
+
+  <!-- Safe Browsing -->
+  <rect class="nb" x="260" y="400" width="120" height="36"/>
+  <text class="nt" x="320" y="423" text-anchor="middle">Safe Browsing API</text>
+  <text class="dia text" x="320" y="450" text-anchor="middle" style="font-size:8px">malicious URL check</text>
+
+  <!-- Analytics DB -->
+  <rect class="nb" x="420" y="400" width="100" height="36"/>
+  <text class="nt" x="470" y="423" text-anchor="middle">ClickHouse</text>
+  <text class="dia text" x="470" y="450" text-anchor="middle" style="font-size:8px">cold analytics</text>
+
+  <!-- Arrows -->
+  <line class="ln" x1="90" y1="248" x2="130" y2="248"/>
+  <line class="ln" x1="220" y1="248" x2="260" y2="218"/>
+  <line class="ln" x1="220" y1="248" x2="260" y2="278"/>
+
+  <!-- App to Redis -->
+  <line class="ln" x1="350" y1="218" x2="420" y2="165"/>
+  <line class="ln" x1="350" y1="278" x2="420" y2="158"/>
+
+  <!-- App to Postgres -->
+  <line class="ln" x1="350" y1="225" x2="420" y2="248"/>
+  <line class="ln" x1="350" y1="278" x2="420" y2="248"/>
+
+  <!-- Postgres to replica -->
+  <line class="ln" x1="470" y1="266" x2="470" y2="310"/>
+
+  <!-- Redis to workers -->
+  <line class="ln" x1="500" y1="158" x2="580" y2="158"/>
+
+  <!-- Workers to Postgres -->
+  <line class="ln" x1="630" y1="176" x2="520" y2="240"/>
+
+  <!-- KGS to Key Pool -->
+  <line class="ln" x1="630" y1="266" x2="630" y2="310"/>
+
+  <!-- KGS to Postgres -->
+  <line class="ln" x1="580" y1="248" x2="520" y2="248"/>
+
+  <!-- CDN to LB -->
+  <line class="ln" x1="70" y1="66" x2="165" y2="230"/>
+
+  <!-- Workers to ClickHouse -->
+  <line class="ln" x1="630" y1="176" x2="500" y2="400"/>
+
+  <!-- App to Safe Browsing -->
+  <line class="ln" x1="305" y1="296" x2="305" y2="400"/>
+</svg>
+
+<div class="plain"><b>Read path</b>    Client → CDN (if cached) or LB → App → Redis → (miss) → Postgres → redirect
+<b>Write path</b>   Client → LB → App → grab key from pool → insert Postgres → warm Redis → respond
+<b>Analytics</b>    Redirect dispatches job → Redis queue → Worker → clicks table / ClickHouse
+<b>Key gen</b>      KGS daemon fills key_pool table in background → App grabs batches</div>
+
+<div class="box key"><div class="bt">◆ How to present this in an interview</div><p>Start with the two flows (read and write) on a whiteboard. Add components as the conversation demands: "Where would you add caching?" → draw Redis. "How do you handle 10x traffic?" → draw LB + multiple app servers. "What about analytics?" → draw the async queue path. Don't dump the full diagram at once — build it up as you discuss each concern.</p></div>
+
+<div class="box tip"><div class="bt">◆ What we skipped (and why)</div><p><strong>Deployment</strong> — discussed separately. <strong>Monitoring dashboards</strong> — operational detail, not architectural. <strong>A/B testing</strong> — product feature, not system design. <strong>Custom domain support</strong> — interesting follow-up, mention if interviewer asks. Keep the core design clean; mention extensions to show depth.</p></div>
+</section>
+
+      </div>
+      <div class="pager" id="pager"></div>
+    </div>
+  </main>
+</div>
+
+<script>
+(function(){
+  const lessons = [...document.querySelectorAll('.lesson')];
+  const nav = document.getElementById('nav');
+  const crumb = document.getElementById('crumb');
+  const pager = document.getElementById('pager');
+  const DONE_KEY = 'book2-done';
+  const store = {
+    get(k){ try{ return localStorage.getItem(k); }catch(e){ return null; } },
+    set(k,v){ try{ localStorage.setItem(k,v); }catch(e){} }
+  };
+  let done = JSON.parse(store.get(DONE_KEY) || '{}');
+
+  const mods = {};
+  lessons.forEach((l, i) => {
+    l.dataset.idx = i;
+    const m = l.dataset.m;
+    (mods[m] = mods[m] || {items:[]}).items.push(l);
+  });
+
+  const MODNAMES = {1:'Foundations',2:'Data',3:'Networking & Delivery',4:'Architecture',5:'Reliability',6:'PHP Deep',7:'Laravel Deep',8:'Practice: URL Shortener'};
+  Object.keys(mods).forEach(m => {
+    const wrap = document.createElement('div'); wrap.className='mod'; wrap.dataset.m=m;
+    const head = document.createElement('div'); head.className='mod-head';
+    head.innerHTML = `<span class="mod-num">0${m}</span><span class="mod-name">${MODNAMES[m]}</span>`
+      + `<span class="mod-count" data-mc="${m}"></span><span class="mod-arrow">▶</span>`;
+    const list = document.createElement('div'); list.className='mod-lessons';
+    mods[m].items.forEach(l => {
+      const el = document.createElement('div'); el.className='les'; el.dataset.idx=l.dataset.idx;
+      el.innerHTML = `<span class="les-dot"></span><span class="les-num">${l.dataset.n}</span><span class="les-name">${l.dataset.title}</span>`;
+      el.addEventListener('click', () => show(+l.dataset.idx));
+      list.appendChild(el);
+    });
+    head.addEventListener('click', () => wrap.classList.toggle('open'));
+    wrap.append(head, list); nav.appendChild(wrap);
+  });
+
+  function refreshCounts(){
+    Object.keys(mods).forEach(m => {
+      const total = mods[m].items.length;
+      const d = mods[m].items.filter(l => done[l.dataset.idx]).length;
+      document.querySelector(`[data-mc="${m}"]`).textContent = `${d}/${total}`;
+    });
+    nav.querySelectorAll('.les').forEach(el => el.classList.toggle('done', !!done[el.dataset.idx]));
+  }
+
+  function show(i){
+    lessons.forEach(l => l.classList.remove('show'));
+    const l = lessons[i]; l.classList.add('show');
+    crumb.innerHTML = `<span>MODUL 0${l.dataset.m}</span><span class="sep">/</span>`
+      + `<span>${l.dataset.mod.split('·')[1].trim().toUpperCase()}</span><span class="sep">/</span>`
+      + `<span class="cur">DARS ${l.dataset.n}</span>`;
+    nav.querySelectorAll('.les').forEach(el => el.classList.toggle('active', +el.dataset.idx===i));
+    nav.querySelectorAll('.mod').forEach(w => { if(w.dataset.m===l.dataset.m) w.classList.add('open'); });
+    buildPager(i);
+    addDoneBtn(l, i);
+    location.hash = l.dataset.n;
+    window.scrollTo({top:0,behavior:'instant'});
+    document.getElementById('sidebar').classList.remove('open');
+    document.getElementById('overlay').classList.remove('show');
+    updateProgress();
+  }
+
+  function buildPager(i){
+    const prev = lessons[i-1], next = lessons[i+1];
+    pager.innerHTML = '';
+    const mk = (l, dir, cls) => {
+      const b = document.createElement('button'); if(cls) b.className=cls;
+      b.innerHTML = `<span class="dir">${dir}</span><span class="t">${l?l.dataset.title:'—'}</span>`;
+      if(l) b.addEventListener('click', ()=>show(+l.dataset.idx)); else b.disabled=true;
+      return b;
+    };
+    pager.append(mk(prev,'← Prev'), mk(next,'Next →','nx'));
+  }
+
+  function addDoneBtn(l, i){
+    let btn = l.querySelector('.mark-done');
+    if(!btn){
+      btn = document.createElement('button'); btn.className='mark-done';
+      btn.addEventListener('click', ()=>{
+        done[i] = !done[i]; store.set(DONE_KEY, JSON.stringify(done));
+        btn.classList.toggle('on', done[i]);
+        btn.querySelector('.txt').textContent = done[i]?'Completed':'Mark complete';
+        refreshCounts(); updateProgress();
+      });
+      btn.innerHTML = `<span>✓</span><span class="txt"></span>`;
+      l.appendChild(btn);
+    }
+    btn.classList.toggle('on', !!done[i]);
+    btn.querySelector('.txt').textContent = done[i]?'Completed':'Mark complete';
+  }
+
+  function updateProgress(){
+    const total = lessons.length;
+    const d = Object.values(done).filter(Boolean).length;
+    document.getElementById('progressBar').style.width = (d/total*100)+'%';
+  }
+
+  const themeBtn = document.getElementById('themeBtn');
+  function applyTheme(t){
+    if(t==='light'){document.documentElement.setAttribute('data-theme','light');themeBtn.textContent='🌙 Dark';}
+    else{document.documentElement.removeAttribute('data-theme');themeBtn.textContent='☀ Light';}
+  }
+  applyTheme(store.get('book2-theme')||'dark');
+  themeBtn.addEventListener('click', ()=>{
+    const light = document.documentElement.getAttribute('data-theme')==='light';
+    const n = light?'dark':'light'; applyTheme(n); store.set('book2-theme', n);
+  });
+
+  document.getElementById('expandBtn').addEventListener('click', ()=>nav.querySelectorAll('.mod').forEach(w=>w.classList.add('open')));
+  document.getElementById('collapseBtn').addEventListener('click', ()=>nav.querySelectorAll('.mod').forEach(w=>w.classList.remove('open')));
+
+  document.getElementById('search').addEventListener('input', e=>{
+    const q = e.target.value.toLowerCase().trim();
+    nav.querySelectorAll('.mod').forEach(w=>{
+      let any=0;
+      w.querySelectorAll('.les').forEach(el=>{
+        const hit = !q || el.textContent.toLowerCase().includes(q);
+        el.style.display = hit?'':'none'; if(hit) any++;
+      });
+      w.style.display = (q && !any)?'none':'';
+      if(q && any) w.classList.add('open');
+    });
+  });
+
+  document.querySelectorAll('pre').forEach(pre=>{
+    const b=document.createElement('button'); b.className='copy'; b.textContent='copy';
+    b.addEventListener('click', ()=>{ navigator.clipboard.writeText(pre.querySelector('code').innerText);
+      b.textContent='copied'; b.classList.add('ok'); setTimeout(()=>{b.textContent='copy';b.classList.remove('ok');},1200);});
+    pre.appendChild(b);
+  });
+
+  document.getElementById('menuBtn').addEventListener('click', ()=>{
+    document.getElementById('sidebar').classList.toggle('open');
+    document.getElementById('overlay').classList.toggle('show');
+  });
+  document.getElementById('overlay').addEventListener('click', ()=>{
+    document.getElementById('sidebar').classList.remove('open');
+    document.getElementById('overlay').classList.remove('show');
+  });
+
+  refreshCounts();
+  const start = lessons.findIndex(l=>l.dataset.n===location.hash.slice(1));
+  show(start>=0?start:0);
+  nav.querySelector('.mod').classList.add('open');
+})();
+</script>
+</body>
+</html>

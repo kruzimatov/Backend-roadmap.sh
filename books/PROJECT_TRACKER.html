@@ -1,0 +1,487 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<title>Backend Project Tracker</title>
+<style>
+@import url('https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700;800&family=JetBrains+Mono:wght@400;500;600&display=swap');
+*{margin:0;padding:0;box-sizing:border-box}
+:root{
+  --bg:#0a0a0f;--bg2:#12121a;--bg3:#1a1a2e;
+  --accent:#6c63ff;--accent2:#ff6584;--accent3:#43e97b;--accent4:#fbbf24;
+  --accent-dim:rgba(108,99,255,.12);--accent-bd:rgba(108,99,255,.35);
+  --green-dim:rgba(67,233,123,.1);--red-dim:rgba(255,101,132,.1);--amber-dim:rgba(251,191,36,.1);
+  --text:#e8e8f0;--text2:#a0a0b8;--text3:#666680;
+  --border:#2a2a40;--card:#16162a;
+  --mono:'JetBrains Mono',monospace;
+}
+[data-theme="light"]{
+  --bg:#f5f5fa;--bg2:#fff;--bg3:#eeeef4;
+  --accent:#5b52e0;--accent2:#e0446c;--accent3:#16a34a;--accent4:#d97706;
+  --accent-dim:rgba(91,82,224,.08);--accent-bd:rgba(91,82,224,.3);
+  --green-dim:rgba(22,163,74,.08);--red-dim:rgba(224,68,108,.08);--amber-dim:rgba(217,119,6,.08);
+  --text:#1a1a2e;--text2:#555570;--text3:#8888a0;
+  --border:#dddde8;--card:#fff;
+}
+html{scroll-behavior:smooth}
+body{font-family:'Inter',system-ui,sans-serif;background:var(--bg);color:var(--text);line-height:1.6;font-size:15px;-webkit-font-smoothing:antialiased}
+.app{display:flex;min-height:100vh}
+
+/* Sidebar */
+.sidebar{width:300px;flex-shrink:0;background:var(--bg2);border-right:1px solid var(--border);height:100vh;position:sticky;top:0;overflow-y:auto;display:flex;flex-direction:column}
+.sb-head{padding:20px 18px 16px;border-bottom:1px solid var(--border)}
+.sb-brand{font-family:var(--mono);font-size:.68rem;font-weight:700;letter-spacing:.18em;color:var(--accent);text-transform:uppercase}
+.sb-title{font-size:1.05rem;font-weight:800;margin-top:4px;letter-spacing:-.02em}
+.sb-sub{font-size:.72rem;color:var(--text3);margin-top:2px}
+.sb-tools{display:flex;gap:6px;padding:12px 16px;border-bottom:1px solid var(--border);flex-wrap:wrap}
+.sb-tools button{background:var(--bg3);border:1px solid var(--border);color:var(--text2);font-size:.68rem;padding:5px 9px;border-radius:7px;cursor:pointer;font-family:inherit;transition:.15s}
+.sb-tools button:hover{border-color:var(--accent-bd);color:var(--text)}
+.sb-tools button.active{background:var(--accent-dim);border-color:var(--accent-bd);color:var(--accent)}
+.sb-search{padding:10px 16px;border-bottom:1px solid var(--border)}
+.sb-search input{width:100%;background:var(--bg3);border:1px solid var(--border);border-radius:8px;padding:7px 10px;color:var(--text);font-size:.78rem;font-family:inherit;outline:none}
+.sb-search input:focus{border-color:var(--accent-bd)}
+.sb-nav{flex:1;overflow-y:auto;padding:8px 0 30px}
+.sb-section{margin-bottom:2px}
+.sb-section-head{display:flex;align-items:center;gap:9px;padding:9px 16px;cursor:pointer;transition:.15s}
+.sb-section-head:hover{background:var(--bg3)}
+.sb-section-label{font-size:.72rem;font-weight:700;letter-spacing:.06em;text-transform:uppercase;color:var(--text2);flex:1}
+.sb-section-count{font-family:var(--mono);font-size:.64rem;color:var(--text3)}
+.sb-section-arrow{font-size:.6rem;color:var(--text3);transition:transform .2s}
+.sb-section.open .sb-section-arrow{transform:rotate(90deg)}
+.sb-items{display:none;padding:2px 0 8px}
+.sb-section.open .sb-items{display:block}
+.sb-item{display:flex;align-items:center;gap:8px;padding:6px 16px 6px 28px;cursor:pointer;font-size:.74rem;color:var(--text2);transition:.12s}
+.sb-item:hover{color:var(--text);background:var(--bg3)}
+.sb-item.active{color:var(--accent);background:var(--accent-dim)}
+.sb-item .dot{width:6px;height:6px;border-radius:50%;border:1.5px solid var(--text3);flex-shrink:0}
+.sb-item.done .dot{background:var(--accent3);border-color:var(--accent3)}
+.sb-item.in-progress .dot{background:var(--accent4);border-color:var(--accent4)}
+.sb-item-name{flex:1;white-space:nowrap;overflow:hidden;text-overflow:ellipsis}
+.sb-item-badge{font-family:var(--mono);font-size:.58rem;padding:1px 5px;border-radius:4px;font-weight:600;flex-shrink:0}
+.sb-item-badge.beginner{background:var(--green-dim);color:var(--accent3)}
+.sb-item-badge.intermediate{background:var(--amber-dim);color:var(--accent4)}
+.sb-item-badge.advanced{background:var(--red-dim);color:var(--accent2)}
+
+/* Progress bar */
+.progress-top{height:3px;background:var(--border);position:sticky;top:0;z-index:20}
+.progress-top>i{display:block;height:100%;width:0;background:linear-gradient(90deg,var(--accent),var(--accent3));transition:.3s}
+
+/* Main content */
+.main{flex:1;min-width:0}
+.reader{max-width:900px;margin:0 auto;padding:46px 40px 120px;width:100%}
+
+/* Stats bar */
+.stats{display:grid;grid-template-columns:repeat(4,1fr);gap:12px;margin-bottom:36px}
+.stat{background:var(--card);border:1px solid var(--border);border-radius:12px;padding:16px}
+.stat-label{font-size:.68rem;color:var(--text3);font-weight:600;text-transform:uppercase;letter-spacing:.08em;font-family:var(--mono)}
+.stat-value{font-size:1.8rem;font-weight:800;margin-top:4px}
+.stat-value.accent{color:var(--accent)}
+.stat-value.green{color:var(--accent3)}
+.stat-value.amber{color:var(--accent4)}
+.stat-value.red{color:var(--accent2)}
+.stat-sub{font-size:.72rem;color:var(--text3);margin-top:2px}
+
+/* Source tabs */
+.source-tabs{display:flex;gap:6px;margin-bottom:24px}
+.source-tab{background:var(--bg3);border:1px solid var(--border);color:var(--text2);font-size:.78rem;padding:8px 16px;border-radius:9px;cursor:pointer;font-family:inherit;font-weight:600;transition:.15s}
+.source-tab:hover{border-color:var(--accent-bd);color:var(--text)}
+.source-tab.active{background:var(--accent-dim);border-color:var(--accent-bd);color:var(--accent)}
+
+/* Project cards */
+.project-grid{display:grid;grid-template-columns:repeat(auto-fill,minmax(280px,1fr));gap:14px}
+.project-card{background:var(--card);border:1px solid var(--border);border-radius:12px;padding:18px;transition:.2s;cursor:pointer;position:relative}
+.project-card:hover{border-color:var(--accent-bd);transform:translateY(-1px)}
+.project-card.done{border-color:rgba(67,233,123,.3)}
+.project-card.in-progress{border-color:rgba(251,191,36,.3)}
+.pc-top{display:flex;align-items:center;justify-content:space-between;margin-bottom:8px}
+.pc-badge{font-family:var(--mono);font-size:.62rem;padding:2px 8px;border-radius:5px;font-weight:600;text-transform:uppercase;letter-spacing:.06em}
+.pc-badge.beginner{background:var(--green-dim);color:var(--accent3)}
+.pc-badge.intermediate{background:var(--amber-dim);color:var(--accent4)}
+.pc-badge.advanced{background:var(--red-dim);color:var(--accent2)}
+.pc-type{font-family:var(--mono);font-size:.6rem;color:var(--text3);text-transform:uppercase;letter-spacing:.08em}
+.pc-name{font-size:.92rem;font-weight:700;margin-bottom:6px}
+.pc-desc{font-size:.78rem;color:var(--text2);line-height:1.5;margin-bottom:12px}
+.pc-footer{display:flex;align-items:center;gap:8px}
+.pc-status{font-size:.7rem;padding:4px 10px;border-radius:6px;cursor:pointer;font-family:inherit;font-weight:600;border:1px solid var(--border);background:var(--bg3);color:var(--text2);transition:.15s}
+.pc-status:hover{border-color:var(--accent-bd)}
+.pc-status.todo{background:var(--bg3);color:var(--text3)}
+.pc-status.in-progress{background:var(--amber-dim);color:var(--accent4);border-color:rgba(251,191,36,.3)}
+.pc-status.done{background:var(--green-dim);color:var(--accent3);border-color:rgba(67,233,123,.3)}
+.pc-category{font-family:var(--mono);font-size:.6rem;color:var(--text3);margin-left:auto}
+.pc-link{font-size:.68rem;color:var(--accent);text-decoration:none;font-weight:600}
+.pc-link:hover{text-decoration:underline}
+
+/* Section header */
+.section-header{margin:32px 0 16px;display:flex;align-items:center;gap:10px}
+.section-header h2{font-size:1.1rem;font-weight:700;letter-spacing:-.01em}
+.section-header h2::before{content:"";display:inline-block;width:3px;height:18px;background:var(--accent);border-radius:2px;margin-right:8px;vertical-align:middle}
+.section-count{font-family:var(--mono);font-size:.68rem;color:var(--text3)}
+
+/* Filter bar */
+.filters{display:flex;gap:6px;margin-bottom:20px;flex-wrap:wrap}
+.filter-btn{background:var(--bg3);border:1px solid var(--border);color:var(--text2);font-size:.7rem;padding:5px 12px;border-radius:7px;cursor:pointer;font-family:inherit;font-weight:500;transition:.15s}
+.filter-btn:hover{border-color:var(--accent-bd);color:var(--text)}
+.filter-btn.active{background:var(--accent-dim);border-color:var(--accent-bd);color:var(--accent)}
+
+/* Mobile */
+.menu-btn{display:none;position:fixed;top:12px;left:12px;z-index:60;background:var(--bg2);border:1px solid var(--border);color:var(--text);width:40px;height:40px;border-radius:10px;font-size:1.1rem;cursor:pointer}
+.overlay{display:none;position:fixed;inset:0;background:rgba(0,0,0,.5);z-index:40}
+@media(max-width:900px){
+  .sidebar{position:fixed;left:0;top:0;z-index:50;transform:translateX(-100%);transition:transform .25s}
+  .sidebar.open{transform:none}
+  .overlay.show{display:block}
+  .menu-btn{display:block}
+  .reader{padding:64px 16px 100px}
+  .stats{grid-template-columns:repeat(2,1fr)}
+  .project-grid{grid-template-columns:1fr}
+}
+</style>
+</head>
+<body>
+<button class="menu-btn" id="menuBtn">☰</button>
+<div class="overlay" id="overlay"></div>
+<div class="app">
+  <aside class="sidebar" id="sidebar">
+    <div class="sb-head">
+      <div class="sb-brand">TRACKER</div>
+      <div class="sb-title">Backend Project Roadmap</div>
+      <div class="sb-sub">roadmap.sh + Rustam Zokirov — 76 projects</div>
+    </div>
+    <div class="sb-tools">
+      <button id="themeBtn">☀ Light</button>
+      <button id="expandBtn">⊕ Expand</button>
+      <button id="collapseBtn">⊖ Collapse</button>
+    </div>
+    <div class="sb-search"><input id="search" placeholder="Search projects…"></div>
+    <nav class="sb-nav" id="nav"></nav>
+  </aside>
+
+  <main class="main">
+    <div class="progress-top"><i id="progressBar"></i></div>
+    <div class="reader" id="reader">
+      <div class="stats" id="stats"></div>
+      <div class="source-tabs" id="sourceTabs"></div>
+      <div class="filters" id="filters"></div>
+      <div id="content"></div>
+    </div>
+  </main>
+</div>
+
+<script>
+(function(){
+
+const PROJECTS = [
+  // ===== ROADMAP.SH — BEGINNER =====
+  {id:"rs-1",name:"Task Tracker",desc:"Build a CLI app to track your tasks and manage your to-do list.",level:"beginner",type:"CLI",source:"roadmap.sh",category:"CLI Projects",link:"https://roadmap.sh/projects/task-tracker"},
+  {id:"rs-2",name:"GitHub User Activity",desc:"Use GitHub API to fetch user activity and display it in the terminal.",level:"beginner",type:"CLI",source:"roadmap.sh",category:"CLI Projects",link:"https://roadmap.sh/projects/github-user-activity"},
+  {id:"rs-3",name:"Expense Tracker",desc:"Build a simple expense tracker to manage your finances.",level:"beginner",type:"CLI",source:"roadmap.sh",category:"CLI Projects",link:"https://roadmap.sh/projects/expense-tracker"},
+  {id:"rs-4",name:"Number Guessing Game",desc:"Build a simple number guessing game to test your luck.",level:"beginner",type:"CLI",source:"roadmap.sh",category:"CLI Projects",link:"https://roadmap.sh/projects/number-guessing-game"},
+  {id:"rs-5",name:"GitHub Trending CLI",desc:"CLI application that talks to GitHub API and shows the trending repositories.",level:"beginner",type:"CLI",source:"roadmap.sh",category:"CLI Projects",link:"https://roadmap.sh/projects/github-trending-cli"},
+  {id:"rs-6",name:"TMDB CLI Tool",desc:"Use TMDB API to fetch movie information and display it in the terminal.",level:"beginner",type:"CLI",source:"roadmap.sh",category:"CLI Projects",link:"https://roadmap.sh/projects/tmdb-cli"},
+  {id:"rs-7",name:"Unit Converter",desc:"Unit converter to convert between different units of measurement.",level:"beginner",type:"Web App",source:"roadmap.sh",category:"Web App Projects",link:"https://roadmap.sh/projects/unit-converter"},
+  {id:"rs-8",name:"Personal Blog",desc:"Build a personal blog to write and publish articles on various topics.",level:"beginner",type:"Web App",source:"roadmap.sh",category:"Web App Projects",link:"https://roadmap.sh/projects/personal-blog"},
+  {id:"rs-9",name:"Weather API",desc:"Build a weather API that fetches and returns weather data.",level:"beginner",type:"API",source:"roadmap.sh",category:"API Projects",link:"https://roadmap.sh/projects/weather-api"},
+  {id:"rs-10",name:"Blogging Platform API",desc:"Build a RESTful API for a personal blogging platform.",level:"beginner",type:"API",source:"roadmap.sh",category:"API Projects",link:"https://roadmap.sh/projects/blogging-platform-api"},
+  {id:"rs-11",name:"Todo List API",desc:"Build a RESTful API to allow users to manage their to-do list.",level:"beginner",type:"API",source:"roadmap.sh",category:"API Projects",link:"https://roadmap.sh/projects/todo-list-api"},
+  {id:"rs-12",name:"Expense Tracker API",desc:"Build an API for an expense tracker application.",level:"beginner",type:"API",source:"roadmap.sh",category:"API Projects",link:"https://roadmap.sh/projects/expense-tracker-api"},
+  // ===== ROADMAP.SH — INTERMEDIATE =====
+  {id:"rs-13",name:"Caching Proxy",desc:"Build a caching server that caches responses from other servers.",level:"intermediate",type:"CLI",source:"roadmap.sh",category:"CLI Projects",link:"https://roadmap.sh/projects/caching-server"},
+  {id:"rs-14",name:"Markdown Note-taking App",desc:"Build a note-taking app that uses markdown for formatting.",level:"intermediate",type:"API",source:"roadmap.sh",category:"API Projects",link:"https://roadmap.sh/projects/markdown-note-taking-app"},
+  {id:"rs-15",name:"URL Shortening Service",desc:"Build a URL Shortener API that helps shorten long URLs.",level:"intermediate",type:"API",source:"roadmap.sh",category:"API Projects",link:"https://roadmap.sh/projects/url-shortening-service"},
+  {id:"rs-16",name:"Broadcast Server",desc:"Build a server that can broadcast messages to connected clients.",level:"intermediate",type:"CLI",source:"roadmap.sh",category:"CLI Projects",link:"https://roadmap.sh/projects/broadcast-server"},
+  {id:"rs-17",name:"Multi-Container Application",desc:"Use Docker Compose to run a multi-container application.",level:"intermediate",type:"Docker",source:"roadmap.sh",category:"DevOps Projects",link:"https://roadmap.sh/projects/multi-container-service"},
+  {id:"rs-18",name:"E-Commerce API",desc:"E-Commerce platform with cart and payment gateway integration.",level:"intermediate",type:"API",source:"roadmap.sh",category:"API Projects",link:"https://roadmap.sh/projects/scalable-ecommerce-platform"},
+  {id:"rs-19",name:"Linux Server Setup",desc:"Learn to set up and secure a Linux server from scratch.",level:"intermediate",type:"Linux",source:"roadmap.sh",category:"DevOps Projects",link:"https://roadmap.sh/projects/linux-server-setup"},
+  {id:"rs-20",name:"Workout Tracker",desc:"App to let users track their workouts and progress.",level:"intermediate",type:"API",source:"roadmap.sh",category:"API Projects",link:"https://roadmap.sh/projects/fitness-workout-tracker"},
+  {id:"rs-21",name:"Image Processing Service",desc:"Build a service that allows users to upload and process images.",level:"intermediate",type:"API",source:"roadmap.sh",category:"API Projects",link:"https://roadmap.sh/projects/image-processing-service"},
+  // ===== ROADMAP.SH — ADVANCED =====
+  {id:"rs-22",name:"Movie Reservation System",desc:"Build a system that allows users to reserve movie tickets.",level:"advanced",type:"API",source:"roadmap.sh",category:"API Projects",link:"https://roadmap.sh/projects/movie-reservation-system"},
+  {id:"rs-23",name:"Real-time Leaderboard",desc:"Create a real-time leaderboard system for ranking and scoring.",level:"advanced",type:"API",source:"roadmap.sh",category:"API Projects",link:"https://roadmap.sh/projects/realtime-leaderboard"},
+  {id:"rs-24",name:"Database Backup Utility",desc:"Build a database backup utility that can backup and restore any DB.",level:"advanced",type:"CLI",source:"roadmap.sh",category:"CLI Projects",link:"https://roadmap.sh/projects/database-backup-utility"},
+  {id:"rs-25",name:"Scalable E-Commerce Platform",desc:"Build an e-commerce platform using microservices architecture.",level:"advanced",type:"API",source:"roadmap.sh",category:"API Projects",link:"https://roadmap.sh/projects/scalable-ecommerce-platform"},
+
+  // ===== RUSTAM ZOKIROV — Finance & Banking =====
+  {id:"rz-1",name:"Comprehensive Banking System",desc:"User authentication with 2FA, multi-currency account management, real-time forex conversions, loan workflows.",level:"intermediate",type:"Web App",source:"rustam",category:"Finance & Banking"},
+  {id:"rz-2",name:"Crypto Trading Exchange",desc:"Real-time market data, order matching engine, wallet management, high-security auth.",level:"advanced",type:"Web App",source:"rustam",category:"Finance & Banking"},
+  // ===== Travel, Transport & Logistics =====
+  {id:"rz-3",name:"Airline Flight Reservation",desc:"Real-time seat layout mapping, multi-segment route search, weekly flight schedules.",level:"intermediate",type:"Web App",source:"rustam",category:"Travel & Transport"},
+  {id:"rz-4",name:"Urban Taxi & Ridesharing App",desc:"GPS tracking, real-time driver matching, route optimization, dynamic fare estimation.",level:"advanced",type:"Web App",source:"rustam",category:"Travel & Transport"},
+  {id:"rz-5",name:"Bus Reservation & Live Tracking",desc:"Route management, seat booking, real-time GPS tracking, QR code validation.",level:"intermediate",type:"Web App",source:"rustam",category:"Travel & Transport"},
+  {id:"rz-6",name:"Railway Booking & Train Status",desc:"Station-to-station booking, waitlist algorithms, dynamic seat allocation, real-time tracking.",level:"intermediate",type:"Web App",source:"rustam",category:"Travel & Transport"},
+  {id:"rz-7",name:"Vehicle Rental & Fleet Booking",desc:"Multi-vehicle categories, availability calendar, driver assignment, fuel logging.",level:"intermediate",type:"Web App",source:"rustam",category:"Travel & Transport"},
+  {id:"rz-8",name:"Courier & Cargo Logistics",desc:"Shipping calculator, waybill generation, hub tracking, driver dispatch, customs docs.",level:"advanced",type:"Web App",source:"rustam",category:"Travel & Transport"},
+  {id:"rz-9",name:"City Parking Management",desc:"Real-time parking slot availability, license plate recognition, automated gate control.",level:"intermediate",type:"Web App",source:"rustam",category:"Travel & Transport"},
+  // ===== Education =====
+  {id:"rz-10",name:"University Education Portal",desc:"Program directory, course syllabi, campus maps, fee calculators, virtual tours.",level:"beginner",type:"Web App",source:"rustam",category:"Education & E-Learning"},
+  {id:"rz-11",name:"Proctored Online Exam System",desc:"Webcam & screen-monitoring AI, dynamic question randomization per student.",level:"advanced",type:"Web App",source:"rustam",category:"Education & E-Learning"},
+  {id:"rz-12",name:"Academic Library Management",desc:"ISBN lookup, automated check-in/check-out with barcode scanner, digital catalog.",level:"intermediate",type:"Web App",source:"rustam",category:"Education & E-Learning"},
+  {id:"rz-13",name:"E-Content & Digital Asset Manager",desc:"Role-based file uploads, content tagging, metadata indexing, version control.",level:"intermediate",type:"Web App",source:"rustam",category:"Education & E-Learning"},
+  {id:"rz-14",name:"Interactive Coding Environment",desc:"In-browser code runner (multi-language), live code co-editing between teacher and student.",level:"advanced",type:"Web App",source:"rustam",category:"Education & E-Learning"},
+  {id:"rz-15",name:"Online Quiz Platform",desc:"Timed sessions, question banks by topic, randomized options, instant reports.",level:"intermediate",type:"Web App",source:"rustam",category:"Education & E-Learning"},
+  {id:"rz-16",name:"LMS with Gamification",desc:"Course tools, video hosting, discussion forums, progress dashboards, certificates.",level:"advanced",type:"Web App",source:"rustam",category:"Education & E-Learning"},
+  // ===== Healthcare =====
+  {id:"rz-17",name:"Healthcare Consultation Portal",desc:"Doctor search, hospital directory, video consultation, multi-language, cost estimation.",level:"intermediate",type:"Web App",source:"rustam",category:"Healthcare & Medical"},
+  {id:"rz-18",name:"Electronic Health Record (EHR)",desc:"HIPAA-compliant encryption, patient history logging, role-based access.",level:"advanced",type:"Web App",source:"rustam",category:"Healthcare & Medical"},
+  {id:"rz-19",name:"Pharmacy Store Management",desc:"Drug inventory, expiration tracking, prescription validation, POS billing.",level:"intermediate",type:"Web App",source:"rustam",category:"Healthcare & Medical"},
+  {id:"rz-20",name:"Blood Bank & Donor Matching",desc:"Real-time blood group inventory, donor registration, urgent broadcast alerts.",level:"intermediate",type:"Web App",source:"rustam",category:"Healthcare & Medical"},
+  {id:"rz-21",name:"Organ Transplantation Registry",desc:"Secure donor-recipient matching based on urgency, distance, and compatibility.",level:"advanced",type:"Web App",source:"rustam",category:"Healthcare & Medical"},
+  {id:"rz-22",name:"Pandemic & Vaccine Tracker",desc:"Contact tracing, lab results, bed availability dashboards, quarantine monitoring.",level:"advanced",type:"Web App",source:"rustam",category:"Healthcare & Medical"},
+  {id:"rz-23",name:"Doctor Appointment Reservation",desc:"Doctor schedule setup, slot booking with deposits, automated SMS/email reminders.",level:"beginner",type:"Web App",source:"rustam",category:"Healthcare & Medical"},
+  // ===== E-Commerce =====
+  {id:"rz-24",name:"Multi-Vendor E-Commerce",desc:"Merchant management, shopping cart, payment gateways, order workflows, commissions.",level:"advanced",type:"Web App",source:"rustam",category:"E-Commerce & Retail"},
+  {id:"rz-25",name:"Car Dealership & Auction Portal",desc:"Vehicle filtering, 360° views, test-drive scheduling, financing calculator, live bidding.",level:"advanced",type:"Web App",source:"rustam",category:"E-Commerce & Retail"},
+  {id:"rz-26",name:"Multi-Location Inventory Control",desc:"Barcode/RFID scan, multi-warehouse stock tracking, auto-purchase order generation.",level:"intermediate",type:"Web App",source:"rustam",category:"E-Commerce & Retail"},
+  {id:"rz-27",name:"Online Food Delivery Network",desc:"Multi-district restaurants, menu builder, live dispatch, driver routing, payouts.",level:"advanced",type:"Web App",source:"rustam",category:"E-Commerce & Retail"},
+  {id:"rz-28",name:"Restaurant Food Ordering & Receipt",desc:"Interactive menu UI, order queue monitor, thermal printer API for PDF/receipt output.",level:"beginner",type:"Web App",source:"rustam",category:"E-Commerce & Retail"},
+  // ===== Hospitality =====
+  {id:"rz-29",name:"Hotel Booking & Front-Desk",desc:"Room inventory, dynamic seasonal pricing, check-in/check-out billing, housekeeping.",level:"intermediate",type:"Web App",source:"rustam",category:"Hospitality & Services"},
+  {id:"rz-30",name:"Restaurant Operations System",desc:"Table reservation, Kitchen Display System, digital ordering, split-check billing.",level:"intermediate",type:"Web App",source:"rustam",category:"Hospitality & Services"},
+  {id:"rz-31",name:"Event Venue & Banquet System",desc:"Availability calendar, customizable packages, contract generation, staff scheduling.",level:"intermediate",type:"Web App",source:"rustam",category:"Hospitality & Services"},
+  {id:"rz-32",name:"Home Services & Maintenance",desc:"Service catalog, provider matching, dynamic pricing, customer ratings, escrow.",level:"intermediate",type:"Web App",source:"rustam",category:"Hospitality & Services"},
+  {id:"rz-33",name:"Real Estate Rental & Sales Portal",desc:"Map-based search, virtual tours, tenant applications, lease tracking, rent collection.",level:"intermediate",type:"Web App",source:"rustam",category:"Hospitality & Services"},
+  // ===== Enterprise =====
+  {id:"rz-34",name:"Plagiarism Checker & File Manager",desc:"Multi-format parsing (PDF, DOCX, TXT), N-gram and cosine similarity algorithms.",level:"intermediate",type:"Web App",source:"rustam",category:"Enterprise & Security"},
+  {id:"rz-35",name:"Company ERP System",desc:"HR management, payroll processing, expense tracking, task boards, financial reporting.",level:"advanced",type:"Web App",source:"rustam",category:"Enterprise & Security"},
+  {id:"rz-36",name:"Biometric Attendance System",desc:"Biometric hardware API integration, real-time identity verification, clock-in/out.",level:"intermediate",type:"Web App",source:"rustam",category:"Enterprise & Security"},
+  {id:"rz-37",name:"Smart Warehouse Management",desc:"Bin location mapping, pick-and-pack routes, stock movement logging, reconciliation.",level:"advanced",type:"Web App",source:"rustam",category:"Enterprise & Security"},
+  {id:"rz-38",name:"AI Knowledge Base & Search",desc:"Semantic vector search, permission-aware access, auto-summarization, real-time indexing.",level:"advanced",type:"Web App",source:"rustam",category:"Enterprise & Security"},
+  // ===== Smart City =====
+  {id:"rz-39",name:"City Traffic Monitoring System",desc:"Live camera feed analysis, vehicle density measurement, dynamic traffic light timing.",level:"advanced",type:"Web App",source:"rustam",category:"Smart City & Public Safety"},
+  {id:"rz-40",name:"Police Traffic Violation Reporter",desc:"Citizen reporting, license plate detection, fine generation, payment portal.",level:"intermediate",type:"Web App",source:"rustam",category:"Smart City & Public Safety"},
+  {id:"rz-41",name:"Aircraft Communication & Monitoring",desc:"Telemetry data stream processing, flight path mapping, emergency signal pinging.",level:"advanced",type:"Web App",source:"rustam",category:"Smart City & Public Safety"},
+  // ===== Dev Tools =====
+  {id:"rz-42",name:"Multiplayer Game Engine",desc:"WebSocket-based real-time state sync, game lobby creation, matchmaking engine.",level:"advanced",type:"Web App",source:"rustam",category:"Developer Tools"},
+  {id:"rz-43",name:"Online Code Compilation Platform",desc:"Containerized execution (Docker) for untrusted code, resource limit caps.",level:"advanced",type:"Web App",source:"rustam",category:"Developer Tools"},
+  {id:"rz-44",name:"Mathematical Computing Library",desc:"Linear algebra, calculus functions, statistical distributions, arbitrary-precision math.",level:"intermediate",type:"Library",source:"rustam",category:"Developer Tools"},
+  {id:"rz-45",name:"Distributed Job Queue & Scheduler",desc:"Worker management, retry policies, task prioritization, dead-letter queues, dashboard.",level:"advanced",type:"Web App",source:"rustam",category:"Developer Tools"},
+  // ===== Lightweight Tools =====
+  {id:"rz-46",name:"Weather Outfit Recommender Bot",desc:"Weather API integration, location detection, clothing recommendations, daily alerts.",level:"beginner",type:"Bot",source:"rustam",category:"Lightweight Tools & Bots"},
+  {id:"rz-47",name:"QR Code Generator System",desc:"Multiple payload types (URLs, Wi-Fi, vCards), customizable error correction levels.",level:"beginner",type:"CLI/Bot",source:"rustam",category:"Lightweight Tools & Bots"},
+  {id:"rz-48",name:"Task & Reminders Cron Tool",desc:"Natural language date parsing, cron expression engine, background scheduler.",level:"beginner",type:"CLI/Bot",source:"rustam",category:"Lightweight Tools & Bots"},
+  {id:"rz-49",name:"Custom URL Shortener",desc:"Short key generation, custom slugs, dynamic redirects, click analytics, expiration.",level:"beginner",type:"CLI/Bot/Web",source:"rustam",category:"Lightweight Tools & Bots"},
+  {id:"rz-50",name:"Lost & Found Web Platform",desc:"Categorized listings, image uploads, location geotagging, verification, messaging.",level:"beginner",type:"Web App",source:"rustam",category:"Lightweight Tools & Bots"},
+  {id:"rz-51",name:"Markdown to PDF / Portfolio Generator",desc:"Markdown parsing, customizable CSS templates, dynamic live preview, image bundling.",level:"beginner",type:"CLI/Web",source:"rustam",category:"Lightweight Tools & Bots"}
+];
+
+const STORE_KEY = 'project-tracker-status';
+const THEME_KEY = 'project-tracker-theme';
+const store = {
+  get(k){ try{ return localStorage.getItem(k); }catch(e){ return null; } },
+  set(k,v){ try{ localStorage.setItem(k,v); }catch(e){} }
+};
+
+let statuses = JSON.parse(store.get(STORE_KEY) || '{}');
+let activeSource = 'all';
+let activeLevel = 'all';
+let searchQuery = '';
+
+function getStatus(id){ return statuses[id] || 'todo'; }
+function cycleStatus(id){
+  const order = ['todo','in-progress','done'];
+  const cur = order.indexOf(getStatus(id));
+  statuses[id] = order[(cur+1) % 3];
+  store.set(STORE_KEY, JSON.stringify(statuses));
+  render();
+}
+
+function getFiltered(){
+  return PROJECTS.filter(p => {
+    if(activeSource !== 'all' && p.source !== activeSource) return false;
+    if(activeLevel !== 'all' && p.level !== activeLevel) return false;
+    if(searchQuery && !p.name.toLowerCase().includes(searchQuery) && !p.desc.toLowerCase().includes(searchQuery) && !p.category.toLowerCase().includes(searchQuery)) return false;
+    return true;
+  });
+}
+
+function renderStats(){
+  const all = getFiltered();
+  const done = all.filter(p => getStatus(p.id) === 'done').length;
+  const inProg = all.filter(p => getStatus(p.id) === 'in-progress').length;
+  const todo = all.length - done - inProg;
+  const pct = all.length ? Math.round(done/all.length*100) : 0;
+
+  document.getElementById('stats').innerHTML = `
+    <div class="stat"><div class="stat-label">Total</div><div class="stat-value accent">${all.length}</div><div class="stat-sub">projects available</div></div>
+    <div class="stat"><div class="stat-label">Done</div><div class="stat-value green">${done}</div><div class="stat-sub">${pct}% complete</div></div>
+    <div class="stat"><div class="stat-label">In Progress</div><div class="stat-value amber">${inProg}</div><div class="stat-sub">currently building</div></div>
+    <div class="stat"><div class="stat-label">Todo</div><div class="stat-value red">${todo}</div><div class="stat-sub">remaining</div></div>
+  `;
+
+  const totalAll = PROJECTS.length;
+  const doneAll = PROJECTS.filter(p => getStatus(p.id) === 'done').length;
+  document.getElementById('progressBar').style.width = (doneAll/totalAll*100)+'%';
+}
+
+function renderSourceTabs(){
+  const tabs = [
+    {key:'all',label:'All Projects'},
+    {key:'roadmap.sh',label:'roadmap.sh (25)'},
+    {key:'rustam',label:'Rustam Zokirov (51)'}
+  ];
+  document.getElementById('sourceTabs').innerHTML = tabs.map(t =>
+    `<button class="source-tab${activeSource===t.key?' active':''}" data-src="${t.key}">${t.label}</button>`
+  ).join('');
+}
+
+function renderFilters(){
+  const levels = [
+    {key:'all',label:'All Levels'},
+    {key:'beginner',label:'Beginner'},
+    {key:'intermediate',label:'Intermediate'},
+    {key:'advanced',label:'Advanced'}
+  ];
+  const statusFilters = [
+    {key:'all',label:'All Status'},
+    {key:'todo',label:'Todo'},
+    {key:'in-progress',label:'In Progress'},
+    {key:'done',label:'Done'}
+  ];
+  document.getElementById('filters').innerHTML =
+    levels.map(l => `<button class="filter-btn${activeLevel===l.key?' active':''}" data-level="${l.key}">${l.label}</button>`).join('') +
+    '<span style="width:12px"></span>';
+}
+
+function renderProjects(){
+  const filtered = getFiltered();
+  const groups = {};
+  filtered.forEach(p => {
+    (groups[p.category] = groups[p.category] || []).push(p);
+  });
+
+  let html = '';
+  Object.keys(groups).forEach(cat => {
+    const items = groups[cat];
+    const doneCount = items.filter(p => getStatus(p.id) === 'done').length;
+    html += `<div class="section-header"><h2>${cat}</h2><span class="section-count">${doneCount}/${items.length}</span></div>`;
+    html += '<div class="project-grid">';
+    items.forEach(p => {
+      const st = getStatus(p.id);
+      const stLabel = st === 'in-progress' ? 'In Progress' : st === 'done' ? 'Done' : 'Todo';
+      html += `<div class="project-card ${st}" data-id="${p.id}">
+        <div class="pc-top">
+          <span class="pc-badge ${p.level}">${p.level}</span>
+          <span class="pc-type">${p.type}</span>
+        </div>
+        <div class="pc-name">${p.name}</div>
+        <div class="pc-desc">${p.desc}</div>
+        <div class="pc-footer">
+          <button class="pc-status ${st}" data-id="${p.id}">${stLabel}</button>
+          ${p.link ? `<a class="pc-link" href="${p.link}" target="_blank" rel="noopener">roadmap.sh →</a>` : ''}
+          <span class="pc-category">${p.source === 'rustam' ? 'RZ' : 'RS'}</span>
+        </div>
+      </div>`;
+    });
+    html += '</div>';
+  });
+
+  document.getElementById('content').innerHTML = html;
+}
+
+function renderSidebar(){
+  const nav = document.getElementById('nav');
+  const sources = [
+    {key:'roadmap.sh', label:'ROADMAP.SH'},
+    {key:'rustam', label:'RUSTAM ZOKIROV'}
+  ];
+
+  let html = '';
+  sources.forEach(src => {
+    const items = PROJECTS.filter(p => p.source === src.key);
+    const cats = {};
+    items.forEach(p => { (cats[p.category] = cats[p.category] || []).push(p); });
+
+    Object.keys(cats).forEach(cat => {
+      const catItems = cats[cat];
+      const doneCount = catItems.filter(p => getStatus(p.id) === 'done').length;
+      html += `<div class="sb-section open" data-cat="${cat}">
+        <div class="sb-section-head">
+          <span class="sb-section-label">${cat}</span>
+          <span class="sb-section-count">${doneCount}/${catItems.length}</span>
+          <span class="sb-section-arrow">▶</span>
+        </div>
+        <div class="sb-items">`;
+      catItems.forEach(p => {
+        const st = getStatus(p.id);
+        html += `<div class="sb-item ${st}" data-id="${p.id}">
+          <span class="dot"></span>
+          <span class="sb-item-name">${p.name}</span>
+          <span class="sb-item-badge ${p.level}">${p.level.charAt(0).toUpperCase()}</span>
+        </div>`;
+      });
+      html += '</div></div>';
+    });
+  });
+
+  nav.innerHTML = html;
+}
+
+function render(){
+  renderStats();
+  renderSourceTabs();
+  renderFilters();
+  renderProjects();
+  renderSidebar();
+}
+
+// Event delegation
+document.getElementById('content').addEventListener('click', e => {
+  const btn = e.target.closest('.pc-status');
+  if(btn){
+    e.stopPropagation();
+    cycleStatus(btn.dataset.id);
+  }
+});
+
+document.getElementById('sourceTabs').addEventListener('click', e => {
+  const tab = e.target.closest('.source-tab');
+  if(tab){ activeSource = tab.dataset.src; render(); }
+});
+
+document.getElementById('filters').addEventListener('click', e => {
+  const btn = e.target.closest('.filter-btn');
+  if(btn && btn.dataset.level){ activeLevel = btn.dataset.level; render(); }
+});
+
+document.getElementById('nav').addEventListener('click', e => {
+  const head = e.target.closest('.sb-section-head');
+  if(head){ head.parentElement.classList.toggle('open'); return; }
+  const item = e.target.closest('.sb-item');
+  if(item){ cycleStatus(item.dataset.id); }
+});
+
+document.getElementById('search').addEventListener('input', e => {
+  searchQuery = e.target.value.toLowerCase().trim();
+  render();
+});
+
+// Theme
+const themeBtn = document.getElementById('themeBtn');
+function applyTheme(t){
+  if(t==='light'){document.documentElement.setAttribute('data-theme','light');themeBtn.textContent='🌙 Dark';}
+  else{document.documentElement.removeAttribute('data-theme');themeBtn.textContent='☀ Light';}
+}
+applyTheme(store.get(THEME_KEY)||'dark');
+themeBtn.addEventListener('click', ()=>{
+  const light = document.documentElement.getAttribute('data-theme')==='light';
+  const n = light?'dark':'light'; applyTheme(n); store.set(THEME_KEY, n);
+});
+
+document.getElementById('expandBtn').addEventListener('click', ()=>document.querySelectorAll('.sb-section').forEach(s=>s.classList.add('open')));
+document.getElementById('collapseBtn').addEventListener('click', ()=>document.querySelectorAll('.sb-section').forEach(s=>s.classList.remove('open')));
+
+// Mobile menu
+document.getElementById('menuBtn').addEventListener('click', ()=>{
+  document.getElementById('sidebar').classList.toggle('open');
+  document.getElementById('overlay').classList.toggle('show');
+});
+document.getElementById('overlay').addEventListener('click', ()=>{
+  document.getElementById('sidebar').classList.remove('open');
+  document.getElementById('overlay').classList.remove('show');
+});
+
+render();
+})();
+</script>
+</body>
+</html>
