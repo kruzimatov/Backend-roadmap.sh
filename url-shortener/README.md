@@ -1,58 +1,72 @@
-<p align="center"><a href="https://laravel.com" target="_blank"><img src="https://raw.githubusercontent.com/laravel/art/master/logo-lockup/5%20SVG/2%20CMYK/1%20Full%20Color/laravel-logolockup-cmyk-red.svg" width="400" alt="Laravel Logo"></a></p>
+# URL Shortener API
 
-<p align="center">
-<a href="https://github.com/laravel/framework/actions"><img src="https://github.com/laravel/framework/workflows/tests/badge.svg" alt="Build Status"></a>
-<a href="https://packagist.org/packages/laravel/framework"><img src="https://img.shields.io/packagist/dt/laravel/framework" alt="Total Downloads"></a>
-<a href="https://packagist.org/packages/laravel/framework"><img src="https://img.shields.io/packagist/v/laravel/framework" alt="Latest Stable Version"></a>
-<a href="https://packagist.org/packages/laravel/framework"><img src="https://img.shields.io/packagist/l/laravel/framework" alt="License"></a>
-</p>
+A RESTful URL shortening service built with Laravel. Create short links, track clicks, manage expiration.
 
-## About Laravel
+## Tech Stack
 
-Laravel is a web application framework with expressive, elegant syntax. We believe development must be an enjoyable and creative experience to be truly fulfilling. Laravel takes the pain out of development by easing common tasks used in many web projects, such as:
+- PHP 8.2+ / Laravel 12
+- MySQL
+- Redis (caching — coming soon)
 
-- [Simple, fast routing engine](https://laravel.com/docs/routing).
-- [Powerful dependency injection container](https://laravel.com/docs/container).
-- Multiple back-ends for [session](https://laravel.com/docs/session) and [cache](https://laravel.com/docs/cache) storage.
-- Expressive, intuitive [database ORM](https://laravel.com/docs/eloquent).
-- Database agnostic [schema migrations](https://laravel.com/docs/migrations).
-- [Robust background job processing](https://laravel.com/docs/queues).
-- [Real-time event broadcasting](https://laravel.com/docs/broadcasting).
+## API Endpoints
 
-Laravel is accessible, powerful, and provides tools required for large, robust applications.
+| Method | Endpoint | Description |
+|--------|----------|-------------|
+| POST | `/api/urls` | Create a short URL |
+| GET | `/{code}` | Redirect to original URL |
+| GET | `/api/urls/{code}` | Get URL info |
+| PUT | `/api/urls/{code}` | Update original URL |
+| DELETE | `/api/urls/{code}` | Delete short URL |
+| GET | `/api/urls/{code}/stats` | Get click analytics |
 
-## Learning Laravel
+## Usage
 
-Laravel has the most extensive and thorough [documentation](https://laravel.com/docs) and video tutorial library of all modern web application frameworks, making it a breeze to get started with the framework.
-
-In addition, [Laracasts](https://laracasts.com) contains thousands of video tutorials on a range of topics including Laravel, modern PHP, unit testing, and JavaScript. Boost your skills by digging into our comprehensive video library.
-
-You can also watch bite-sized lessons with real-world projects on [Laravel Learn](https://laravel.com/learn), where you will be guided through building a Laravel application from scratch while learning PHP fundamentals.
-
-## Agentic Development
-
-Laravel's predictable structure and conventions make it ideal for AI coding agents like Claude Code, Cursor, and GitHub Copilot. Install [Laravel Boost](https://laravel.com/docs/ai) to supercharge your AI workflow:
-
+**Create a short URL:**
 ```bash
-composer require laravel/boost --dev
-
-php artisan boost:install
+curl -X POST http://localhost:8000/api/urls \
+  -H "Content-Type: application/json" \
+  -d '{"long_url": "https://example.com"}'
 ```
 
-Boost provides your agent 15+ tools and skills that help agents build Laravel applications while following best practices.
+Response:
+```json
+{
+  "code": "yl8qFQ",
+  "long_url": "https://example.com"
+}
+```
 
-## Contributing
+**Redirect:**
+```
+GET http://localhost:8000/yl8qFQ → 302 redirect to https://example.com
+```
 
-Thank you for considering contributing to the Laravel framework! The contribution guide can be found in the [Laravel documentation](https://laravel.com/docs/contributions).
+## Features
 
-## Code of Conduct
+- [x] Short URL creation with random 6-char code
+- [x] Redirect with 302
+- [x] Click count tracking
+- [x] Link expiration
+- [x] Input validation via FormRequest
+- [ ] Custom slugs
+- [ ] Detailed click analytics (IP, referrer, user-agent)
+- [ ] Redis caching on redirect
+- [ ] Rate limiting
+- [ ] Feature tests
 
-In order to ensure that the Laravel community is welcoming to all, please review and abide by the [Code of Conduct](https://laravel.com/docs/contributions#code-of-conduct).
+## Setup
 
-## Security Vulnerabilities
+```bash
+git clone https://github.com/kruzimatov/Backend-roadmap.sh.git
+cd Backend-roadmap.sh/url-shortener
+composer install
+cp .env.example .env
+php artisan key:generate
+# Configure DB in .env
+php artisan migrate
+php artisan serve
+```
 
-If you discover a security vulnerability within Laravel, please send an e-mail to Taylor Otwell via [taylor@laravel.com](mailto:taylor@laravel.com). All security vulnerabilities will be promptly addressed.
+## Project Context
 
-## License
-
-The Laravel framework is open-sourced software licensed under the [MIT license](https://opensource.org/licenses/MIT).
+Part of my backend learning roadmap — built by hand, no AI-generated code. Following [roadmap.sh/backend](https://roadmap.sh/backend) project track.
