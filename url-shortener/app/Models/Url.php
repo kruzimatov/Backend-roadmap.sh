@@ -4,7 +4,6 @@ namespace App\Models;
 
 use Illuminate\Database\Eloquent\Model;
 
-
 class Url extends Model
 {
     protected $fillable = ['long_url', 'code', 'click_count', 'expires_at'];
@@ -17,8 +16,8 @@ class Url extends Model
         ];
     }
 
-    public function shortenUrl($long_url = null)
+    public function clicks()
     {
-
+        return $this->hasMany(Click::class);
     }
 }

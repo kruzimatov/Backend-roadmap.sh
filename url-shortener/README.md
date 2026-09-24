@@ -4,9 +4,9 @@ A RESTful URL shortening service built with Laravel. Create short links, track c
 
 ## Tech Stack
 
-- PHP 8.2+ / Laravel 12
-- MySQL
-- Redis (caching — coming soon)
+- PHP 8.3+ / Laravel 13
+- SQLite or MySQL
+- Redis (caching — optional future improvement)
 
 ## API Endpoints
 
@@ -14,6 +14,7 @@ A RESTful URL shortening service built with Laravel. Create short links, track c
 |--------|----------|-------------|
 | POST | `/api/urls` | Create a short URL |
 | GET | `/{code}` | Redirect to original URL |
+| GET | `/api/urls` | List active URLs |
 | GET | `/api/urls/{code}` | Get URL info |
 | PUT | `/api/urls/{code}` | Update original URL |
 | DELETE | `/api/urls/{code}` | Delete short URL |
@@ -31,10 +32,24 @@ curl -X POST http://localhost:8000/api/urls \
 Response:
 ```json
 {
-  "code": "yl8qFQ",
-  "long_url": "https://example.com"
+  "message": "URL created successfully",
+  "data": {
+    "code": "yl8qFQ",
+    "long_url": "https://example.com",
+    "expires_at": null
+  }
 }
 ```
+
+`expires_at` is optional. If it is omitted or set to `null`, the short URL does not expire. Expired URLs return `404` from the redirect endpoint, while their metadata and statistics remain available through the API.
+
+**Delete a short URL:**
+
+```text
+DELETE /api/urls/yl8qFQ → 204 No Content
+```
+
+Successful redirects create a detailed click record containing the timestamp, IP address, and user-agent. The aggregate `click_count` is maintained for quick statistics.
 
 **Redirect:**
 ```
@@ -48,11 +63,13 @@ GET http://localhost:8000/yl8qFQ → 302 redirect to https://example.com
 - [x] Click count tracking
 - [x] Link expiration
 - [x] Input validation via FormRequest
+- [x] URL management endpoints
+- [x] Detailed click analytics (IP, timestamp, user-agent)
 - [ ] Custom slugs
-- [ ] Detailed click analytics (IP, referrer, user-agent)
+- [ ] Referrer tracking
 - [ ] Redis caching on redirect
 - [ ] Rate limiting
-- [ ] Feature tests
+- [x] Feature tests
 
 ## Setup
 
