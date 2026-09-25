@@ -3,10 +3,11 @@
 namespace App\Models;
 
 use Illuminate\Database\Eloquent\Model;
+use Illuminate\Database\Eloquent\Relations\BelongsTo;
 
 class Url extends Model
 {
-    protected $fillable = ['long_url', 'code', 'click_count', 'expires_at'];
+    protected $fillable = ['user_id', 'long_url', 'code', 'click_count', 'expires_at'];
 
     protected function casts(): array
     {
@@ -19,5 +20,10 @@ class Url extends Model
     public function clicks()
     {
         return $this->hasMany(Click::class);
+    }
+
+    public function user(): BelongsTo
+    {
+        return $this->belongsTo(User::class);
     }
 }

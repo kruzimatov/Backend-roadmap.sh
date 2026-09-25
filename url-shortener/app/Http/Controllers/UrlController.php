@@ -6,14 +6,28 @@ use App\Http\Requests\StoreUrlRequest;
 use App\Http\Requests\UpdateUrlRequest;
 use App\Models\Click;
 use App\Models\Url;
+use Illuminate\Http\Request;
 use Illuminate\Support\Str;
 
 class UrlController extends Controller
 {
     public function index()
     {
-        $urls = Url::whereNull('expires_at')->orWhere('expires_at', '>', now())
-            ->get(['long_url', 'code', 'click_count']);
+        $perPage = min((int) request()->integer('per_page', 15), 50);
+
+        $urls = request()->user()
+            ->urls()
+            ->where(function ($query) {
+                $query->whereNull('expires_at')
+                    ->orWhere('expires_at', '>', now());
+            })
+            ->latest()
+            ->paginate($perPage, [
+                'long_url',
+                'code',
+                'click_count',
+                'expires_at',
+            ]);
 
         return response()->json($urls);
     }
@@ -25,6 +39,7 @@ class UrlController extends Controller
         } while (Url::where('code', $code)->exists());
 
         $url = Url::create([
+            'user_id' => $request->user()->id,
             'long_url' => $request->long_url,
             'code' => $code,
             'expires_at' => $request->expires_at,
@@ -42,7 +57,8 @@ class UrlController extends Controller
 
     public function update(UpdateUrlRequest $request, string $code)
     {
-        $url = Url::where('code', $code)->first();
+        $url = $request->user()->
+            urls()->where('code', $code)->first();
 
         if (! $url) {
             return response()->json(['message' => 'URL not found'], 404);
@@ -83,9 +99,12 @@ class UrlController extends Controller
         return abort(404);
     }
 
-    public function show(string $code)
+    public function show(Request $request, string $code)
     {
-        $url = Url::where('code', $code)->first();
+        $url = $request->user()
+            ->urls()
+            ->where('code', $code)
+            ->first();
 
         if (! $url) {
             return response()->json(['message' => 'URL not found'], 404);
@@ -100,9 +119,11 @@ class UrlController extends Controller
         ]);
     }
 
-    public function destroy(string $code)
+    public function destroy(Request $request, string $code)
     {
-        $url = Url::where('code', $code)->first();
+        $url = $request->user()
+            ->urls()->where('code', $code)
+            ->first();
 
         if (! $url) {
             return response()->json(['message' => 'URL not found'], 404);
@@ -113,9 +134,12 @@ class UrlController extends Controller
         return response()->noContent();
     }
 
-    public function stats(string $code)
+    public function stats(Request $request, string $code)
     {
-        $url = Url::where('code', $code)->first();
+        $url = $request->user()
+            ->urls()
+            ->where('code', $code)
+            ->first();
 
         if (! $url) {
 

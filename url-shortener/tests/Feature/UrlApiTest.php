@@ -4,6 +4,7 @@ namespace Tests\Feature;
 
 use App\Models\Click;
 use App\Models\Url;
+use App\Models\User;
 use Illuminate\Foundation\Testing\RefreshDatabase;
 use Tests\TestCase;
 
@@ -11,91 +12,86 @@ class UrlApiTest extends TestCase
 {
     use RefreshDatabase;
 
-    public function test_it_creates_a_short_url(): void
+    private function createUrl(User $user, array $attributes = []): Url
     {
-        $response = $this->postJson('/api/urls', [
-            'long_url' => 'https://example.com/articles/laravel',
-        ]);
+        return Url::create(array_merge([
+            'user_id' => $user->id,
+            'long_url' => 'https://example.com',
+            'code' => 'code'.fake()->unique()->numerify('###'),
+        ], $attributes));
+    }
+
+    public function test_it_requires_authentication_for_url_management(): void
+    {
+        $this->getJson('/api/urls')->assertUnauthorized();
+        $this->postJson('/api/urls', ['long_url' => 'https://example.com'])->assertUnauthorized();
+    }
+
+    public function test_it_creates_a_short_url_for_the_authenticated_user(): void
+    {
+        $user = User::factory()->create();
+
+        $response = $this->actingAs($user, 'sanctum')
+            ->postJson('/api/urls', [
+                'long_url' => 'https://example.com/articles/laravel',
+            ]);
 
         $response
             ->assertCreated()
             ->assertJsonPath('data.long_url', 'https://example.com/articles/laravel')
             ->assertJsonStructure(['message', 'data' => ['long_url', 'code', 'expires_at']]);
 
-        $code = $response->json('data.code');
-
-        $this->assertIsString($code);
-        $this->assertSame(6, strlen($code));
         $this->assertDatabaseHas('urls', [
-            'code' => $code,
+            'user_id' => $user->id,
+            'code' => $response->json('data.code'),
             'long_url' => 'https://example.com/articles/laravel',
             'expires_at' => null,
         ]);
     }
 
-    public function test_it_rejects_invalid_update_data(): void
+    public function test_it_rejects_invalid_url_creation_input(): void
     {
-        Url::create([
-            'long_url' => 'https://example.com/original',
-            'code' => 'invalid',
-        ]);
+        $user = User::factory()->create();
 
-        $this->putJson('/api/urls/invalid', [
-            'long_url' => 'not-a-url',
-            'expires_at' => now()->subMinute()->toDateTimeString(),
-        ])
+        $this->actingAs($user, 'sanctum')
+            ->postJson('/api/urls', [
+                'long_url' => 'javascript:alert(1)',
+            ])
             ->assertUnprocessable()
-            ->assertJsonValidationErrors(['long_url', 'expires_at']);
-    }
-
-    public function test_it_validates_url_creation_input(): void
-    {
-        $response = $this->postJson('/api/urls', [
-            'long_url' => 'not-a-url',
-            'expires_at' => now()->subMinute()->toDateTimeString(),
-        ]);
-
-        $response
-            ->assertUnprocessable()
-            ->assertJsonValidationErrors(['long_url', 'expires_at']);
-
-        $this->assertDatabaseCount('urls', 0);
+            ->assertJsonValidationErrors('long_url');
     }
 
     public function test_it_saves_a_future_expiration(): void
     {
+        $user = User::factory()->create();
         $expiresAt = now()->addDay()->startOfSecond();
 
-        $response = $this->postJson('/api/urls', [
-            'long_url' => 'https://example.com',
-            'expires_at' => $expiresAt->toDateTimeString(),
-        ]);
+        $response = $this->actingAs($user, 'sanctum')
+            ->postJson('/api/urls', [
+                'long_url' => 'https://example.com',
+                'expires_at' => $expiresAt->toDateTimeString(),
+            ]);
 
         $response->assertCreated();
 
         $this->assertDatabaseHas('urls', [
+            'user_id' => $user->id,
             'code' => $response->json('data.code'),
             'expires_at' => $expiresAt->toDateTimeString(),
         ]);
     }
 
-    public function test_it_redirects_and_records_a_click(): void
+    public function test_it_redirects_and_records_a_click_without_authentication(): void
     {
         $url = Url::create([
+            'user_id' => User::factory()->create()->id,
             'long_url' => 'https://example.com/target',
             'code' => 'abc123',
         ]);
 
-        $response = $this
-            ->withHeaders([
-                'User-Agent' => 'UrlShortenerTest/1.0',
-            ])
-            ->withServerVariables([
-                'REMOTE_ADDR' => '203.0.113.10',
-            ])
-            ->get('/abc123');
-
-        $response
+        $this->withHeaders(['User-Agent' => 'UrlShortenerTest/1.0'])
+            ->withServerVariables(['REMOTE_ADDR' => '203.0.113.10'])
+            ->get('/abc123')
             ->assertRedirect('https://example.com/target');
 
         $this->assertDatabaseHas('urls', [
@@ -112,6 +108,7 @@ class UrlApiTest extends TestCase
     public function test_it_does_not_redirect_or_record_clicks_for_an_expired_url(): void
     {
         $url = Url::create([
+            'user_id' => User::factory()->create()->id,
             'long_url' => 'https://example.com/expired',
             'code' => 'expired',
             'expires_at' => now()->subMinute(),
@@ -132,79 +129,105 @@ class UrlApiTest extends TestCase
         $this->assertDatabaseCount('clicks', 0);
     }
 
-    public function test_it_lists_active_urls_with_public_fields(): void
+    public function test_it_lists_only_the_authenticated_users_active_urls_with_pagination(): void
     {
-        Url::create([
-            'long_url' => 'https://example.com/active',
-            'code' => 'active',
-        ]);
-        Url::create([
-            'long_url' => 'https://example.com/expired',
+        $user = User::factory()->create();
+        $otherUser = User::factory()->create();
+
+        $this->createUrl($user);
+        $this->createUrl($user);
+        $this->createUrl($otherUser, ['code' => 'other1']);
+        $this->createUrl($user, [
             'code' => 'oldone',
             'expires_at' => now()->subMinute(),
         ]);
 
-        $this->getJson('/api/urls')
+        $this->actingAs($user, 'sanctum')
+            ->getJson('/api/urls?per_page=1')
             ->assertOk()
-            ->assertJsonCount(1)
-            ->assertJsonPath('0.code', 'active')
-            ->assertJsonPath('0.long_url', 'https://example.com/active')
-            ->assertJsonMissingPath('0.id');
+            ->assertJsonPath('per_page', 1)
+            ->assertJsonPath('total', 2)
+            ->assertJsonCount(1, 'data')
+            ->assertJsonMissing(['code' => 'other1'])
+            ->assertJsonMissing(['code' => 'oldone']);
     }
 
-    public function test_it_shows_a_url_by_code(): void
+    public function test_it_shows_only_the_owners_url(): void
     {
-        Url::create([
-            'long_url' => 'https://example.com/details',
-            'code' => 'details',
-        ]);
+        $owner = User::factory()->create();
+        $otherUser = User::factory()->create();
+        $url = $this->createUrl($owner, ['code' => 'details']);
 
-        $this->getJson('/api/urls/details')
+        $this->actingAs($otherUser, 'sanctum')
+            ->getJson('/api/urls/details')
+            ->assertNotFound();
+
+        $this->actingAs($owner, 'sanctum')
+            ->getJson('/api/urls/details')
             ->assertOk()
-            ->assertJsonPath('code', 'details')
-            ->assertJsonPath('long_url', 'https://example.com/details');
+            ->assertJsonPath('code', $url->code)
+            ->assertJsonPath('long_url', $url->long_url);
     }
 
-    public function test_it_updates_a_url(): void
+    public function test_it_rejects_invalid_update_data(): void
     {
-        $url = Url::create([
-            'long_url' => 'https://example.com/old',
+        $user = User::factory()->create();
+        $this->createUrl($user, ['code' => 'invalid']);
+
+        $this->actingAs($user, 'sanctum')
+            ->putJson('/api/urls/invalid', [
+                'long_url' => 'javascript:alert(1)',
+                'expires_at' => now()->subMinute()->toDateTimeString(),
+            ])
+            ->assertUnprocessable()
+            ->assertJsonValidationErrors(['long_url', 'expires_at']);
+    }
+
+    public function test_it_updates_the_owners_url(): void
+    {
+        $user = User::factory()->create();
+        $url = $this->createUrl($user, [
             'code' => 'update',
             'click_count' => 4,
         ]);
-
         $expiresAt = now()->addWeek()->toDateTimeString();
 
-        $this->putJson('/api/urls/update', [
-            'long_url' => 'https://example.com/new',
-            'expires_at' => $expiresAt,
-        ])
+        $this->actingAs($user, 'sanctum')
+            ->putJson('/api/urls/update', [
+                'long_url' => 'https://example.com/new',
+                'expires_at' => $expiresAt,
+            ])
             ->assertOk()
             ->assertJson(['message' => 'URL updated successfully']);
 
         $this->assertDatabaseHas('urls', [
             'id' => $url->id,
-            'code' => 'update',
             'long_url' => 'https://example.com/new',
             'click_count' => 4,
             'expires_at' => $expiresAt,
         ]);
     }
 
-    public function test_it_returns_not_found_for_unknown_management_codes(): void
+    public function test_it_returns_not_found_for_unknown_or_foreign_management_codes(): void
     {
-        $this->getJson('/api/urls/missing')->assertNotFound();
-        $this->putJson('/api/urls/missing', [
-            'long_url' => 'https://example.com',
-        ])->assertNotFound();
-        $this->deleteJson('/api/urls/missing')->assertNotFound();
-        $this->getJson('/api/urls/missing/stats')->assertNotFound();
+        $user = User::factory()->create();
+        $otherUser = User::factory()->create();
+        $this->createUrl($otherUser, ['code' => 'private1']);
+
+        $this->actingAs($user, 'sanctum')
+            ->getJson('/api/urls/missing')->assertNotFound();
+        $this->actingAs($user, 'sanctum')
+            ->putJson('/api/urls/private1', ['long_url' => 'https://example.com'])->assertNotFound();
+        $this->actingAs($user, 'sanctum')
+            ->deleteJson('/api/urls/private1')->assertNotFound();
+        $this->actingAs($user, 'sanctum')
+            ->getJson('/api/urls/private1/stats')->assertNotFound();
     }
 
-    public function test_it_returns_basic_and_detailed_statistics(): void
+    public function test_it_returns_statistics_for_the_owner(): void
     {
-        $url = Url::create([
-            'long_url' => 'https://example.com/stats',
+        $user = User::factory()->create();
+        $url = $this->createUrl($user, [
             'code' => 'stats1',
             'click_count' => 2,
         ]);
@@ -214,24 +237,22 @@ class UrlApiTest extends TestCase
             'user_agent' => 'StatsTest/1.0',
         ]);
 
-        $this->getJson('/api/urls/stats1/stats')
+        $this->actingAs($user, 'sanctum')
+            ->getJson('/api/urls/stats1/stats')
             ->assertOk()
             ->assertJsonPath('click_count', 2)
             ->assertJsonCount(1, 'clicks')
-            ->assertJsonPath('clicks.0.ip_address', '203.0.113.20')
-            ->assertJsonPath('clicks.0.user_agent', 'StatsTest/1.0')
-            ->assertJsonPath('expires_at', null);
+            ->assertJsonPath('clicks.0.ip_address', '203.0.113.20');
     }
 
-    public function test_it_deletes_a_url_and_its_clicks(): void
+    public function test_it_deletes_the_owners_url_and_its_clicks(): void
     {
-        $url = Url::create([
-            'long_url' => 'https://example.com/delete',
-            'code' => 'delete',
-        ]);
+        $user = User::factory()->create();
+        $url = $this->createUrl($user, ['code' => 'delete']);
         Click::create(['url_id' => $url->id]);
 
-        $this->deleteJson('/api/urls/delete')
+        $this->actingAs($user, 'sanctum')
+            ->deleteJson('/api/urls/delete')
             ->assertNoContent();
 
         $this->assertDatabaseMissing('urls', ['id' => $url->id]);

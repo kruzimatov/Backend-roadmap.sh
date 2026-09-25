@@ -23,7 +23,7 @@ class StoreUrlRequest extends FormRequest
     public function rules(): array
     {
         return [
-            'long_url' => 'required|url',
+            'long_url' => 'required|url:http,https|max:2048',
             'expires_at' => 'nullable|date|after:now',
         ];
     }
